@@ -158,7 +158,7 @@ func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 			_, err = xdr.Marshal(conn, rpc.InitialCmdIdentify)
 			if err != nil {
 				ww.Status(w, true,
-				    "Connection closed during identify")
+					"Connection closed during identify")
 				return
 			}
 
@@ -166,7 +166,7 @@ func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 			_, err = xdr.Unmarshal(conn, &pid)
 			if err != nil {
 				ww.Status(w, true,
-				    "Could not obtain remote identity")
+					"Could not obtain remote identity")
 				return
 			}
 		} else {

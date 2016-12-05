@@ -38,7 +38,7 @@ var (
 	cmdAB            = leader + "ab" // alias for addressbook
 
 	helpArray = []help{
-		help{
+		{
 			command:     cmdAcceptnewcert,
 			usage:       cmdAcceptnewcert,
 			description: "accept new TLS certificate if it changed",
@@ -48,17 +48,17 @@ var (
 				"Ignoring the TLS certificate is acceptable because of the sigma key excahnge that runs inside the TLS tunnel.  TLS is only used as untrusted transport.  The option exists in order to catch unexpected certificate changes in a high security environment.",
 			},
 		},
-		help{
+		{
 			command:     cmdBuild,
 			usage:       cmdBuild,
 			description: "print application git version",
 		},
-		help{
+		{
 			command:     cmdHelp,
 			usage:       cmdHelp + " [command]",
 			description: "this help",
 		},
-		help{
+		{
 			command:     cmdFetch,
 			usage:       cmdFetch + " <pin>",
 			description: "download encrypted key exchange blob from server",
@@ -68,7 +68,7 @@ var (
 				"When this completes successfully the public identity of the other side is cached and one can commence exchanging messages.",
 			},
 		},
-		help{
+		{
 			command:     cmdGc,
 			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <message> | <part>",
 			description: "group chat command",
@@ -82,7 +82,7 @@ var (
 				"part leaves a group chat.  Usage " + cmdGc + " part <groupchat>.",
 			},
 		},
-		help{
+		{
 			command:     cmdInfo,
 			usage:       cmdInfo + "[nick]",
 			description: "print user information",
@@ -90,7 +90,7 @@ var (
 				"When used without a nick this commands prints your information instead of the provided user's information.  This can be used to display things such as real names and fingerprints.",
 			},
 		},
-		help{
+		{
 			command:     cmdKx,
 			usage:       cmdKx,
 			description: "upload encrypted key exchange blob to server",
@@ -100,7 +100,7 @@ var (
 				"When the command completes it prints a PIN code that a third party can use to obtain the encrypted key exchange blob.  See " + cmdFetch + " for more information.",
 			},
 		},
-		help{
+		{
 			command:     cmdList,
 			usage:       cmdList + " <c|conversations> | <a|addressbook> | <gc|groupchat> | <invites> | <joins>",
 			description: "list various cached information",
@@ -112,32 +112,32 @@ var (
 				"joins lists all pending join requests you sent to others to join a group chat.",
 			},
 		},
-		help{
+		{
 			command:     cmdOffline,
 			usage:       cmdOffline,
 			description: "disconnect from server",
 		},
-		help{
+		{
 			command:     cmdOnline,
 			usage:       cmdOnline,
 			description: "attempt to connect to server",
 		},
-		help{
+		{
 			command:     cmdM,
 			usage:       cmdM + " <nick> <message>",
 			description: "alias for " + cmdMsg,
 		},
-		help{
+		{
 			command:     cmdMsg,
 			usage:       cmdMsg + " <nick> <message>",
 			description: "send a private message",
 		},
-		help{
+		{
 			command:     cmdQ,
 			usage:       cmdQ + " <nick>",
 			description: "alias for " + cmdQuery,
 		},
-		help{
+		{
 			command:     cmdQuery,
 			usage:       cmdQuery + " <nick>",
 			description: "start private conversation",
@@ -146,12 +146,12 @@ var (
 					"provided nick.",
 			},
 		},
-		help{
+		{
 			command:     cmdQuit,
 			usage:       cmdQuit + " [force]",
 			description: "quit application",
 		},
-		help{
+		{
 			command:     cmdSend,
 			usage:       cmdSend + " <nick> <filename> [description]",
 			description: "send file to nick.",
@@ -159,17 +159,17 @@ var (
 				"Send a file to a user.  This command is intended to share a file with a single user.",
 			},
 		},
-		help{
+		{
 			command:     cmdWc,
 			usage:       cmdWc,
 			description: "close current conversation window",
 		},
-		help{
+		{
 			command:     cmdW,
 			usage:       cmdW + " <window>",
 			description: "alias for " + cmdWin,
 		},
-		help{
+		{
 			command:     cmdWin,
 			usage:       cmdWin + " <window>",
 			description: "switch to conversation window",
@@ -178,7 +178,7 @@ var (
 					"conversation as read.",
 			},
 		},
-		help{
+		{
 			command:     cmdReset,
 			usage:       cmdReset + " <nick>",
 			description: "reset ratchet state",
@@ -187,7 +187,7 @@ var (
 					"A key exchange must be completed before parties can exchange messages.",
 			},
 		},
-		help{
+		{
 			command:     cmdAddressBook,
 			usage:       cmdAddressBook + " <del> <nick>",
 			description: "Manipulate address book.",
@@ -196,7 +196,7 @@ var (
 					"It is used to permanently remove a nick from the address book.",
 			},
 		},
-		help{
+		{
 			command:     cmdAB,
 			usage:       cmdAB + " <del> <nick>",
 			description: "alias for " + cmdAddressBook,

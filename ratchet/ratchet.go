@@ -169,7 +169,7 @@ func validateECDHpoints(p1, p2 []byte) error {
 		return errors.New("ratchet: invalid ECDH points") // too small
 	}
 	max := big.NewInt(0).Sub(big.NewInt(0).Exp(big.NewInt(2),
-	    big.NewInt(255), nil), big.NewInt(19))
+		big.NewInt(255), nil), big.NewInt(19))
 	if p1n.Cmp(max) != -1 || p2n.Cmp(max) != -1 {
 		return errors.New("ratchet: invalid ECDH points") // too large
 	}
@@ -546,7 +546,7 @@ func inv32(x []byte) []byte {
 	}
 	ret := make([]byte, 32)
 	for i := 0; i < 32; i++ {
-		ret[i] = x[31 - i]
+		ret[i] = x[31-i]
 	}
 	return ret
 }
