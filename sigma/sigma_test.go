@@ -37,10 +37,10 @@ func TestKXAndTransport(t *testing.T) {
 	msg := []byte("this is a message of sorts")
 
 	aliceSKX = NewClient(&alice.Public.Identity, &alice.PrivateIdentity,
-		&bob.Public.Identity)
+		&bob.Public.Identity, 1024)
 	t.Logf("alice fingerprint: %v", alice.Public.Fingerprint())
 	bobSKX = NewServer(&bob.Public.Identity,
-		&bob.PrivateIdentity)
+		&bob.PrivateIdentity, 1024)
 	t.Logf("bob fingerprint: %v", bob.Public.Fingerprint())
 
 	wg := sync.WaitGroup{}
