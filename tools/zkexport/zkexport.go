@@ -81,14 +81,14 @@ func fetchServerRecord(root, ipAndPort string) (*tools.ServerRecord, error) {
 		ipAndPort = fetchServerIPandPort(root)
 		if ipAndPort == "" {
 			return nil, fmt.Errorf("could not obtain server ip. " +
-			    "please add it to the config file or provide it " +
-			    "on the command line (option -i)")
+				"please add it to the config file or provide it " +
+				"on the command line (option -i)")
 		}
 	}
 	pr := tools.ServerRecord{
 		PublicIdentity: fi.Public,
 		Certificate:    cert.Certificate[0],
-		IPandPort:	[]byte(ipAndPort),
+		IPandPort:      []byte(ipAndPort),
 	}
 	return &pr, nil
 }
@@ -206,8 +206,8 @@ func _main() error {
 	verbose := flag.Bool("v", false, "verbose flag")
 	server := flag.Bool("s", false, "export a server's (zkserver) identity")
 	ipAndPort := flag.String("i", "", "specify a zkserver's IP and port")
-	fingerprint := flag.Bool("f", false, "export a zkclient/zkserver's " +
-	    "fingerprint in a human-readable format")
+	fingerprint := flag.Bool("f", false, "export a zkclient/zkserver's "+
+		"fingerprint in a human-readable format")
 	flag.Parse()
 
 	if *server {
