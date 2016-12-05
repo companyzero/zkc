@@ -2,6 +2,6 @@
 *~
 *.diff
 *.orig
-zkup/zkup
-zkc/zkc
+zkserver/zkserver
+zkclient/zkclient
 vendor/
