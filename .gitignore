@@ -1,0 +1,7 @@
+*.sw?
+*~
+*.diff
+*.orig
+zkup/zkup
+zkc/zkc
+vendor/

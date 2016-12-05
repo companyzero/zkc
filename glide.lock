@@ -1,0 +1,44 @@
+hash: 5d0a7018b7275c53493a2cda398bd29693ea8097abd3d8e69d6f16889adfff23
+updated: 2016-11-23T14:07:27.887898489-05:00
+imports:
+- name: github.com/agl/ed25519
+  version: 278e1ec8e8a6e017cd07577924d6766039146ced
+  subpackages:
+  - edwards25519
+  - extra25519
+- name: github.com/companyzero/ttk
+  version: 5a54a821dbc59e9256099ac26b7a703cdc00b0cd
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
+- name: github.com/davecgh/go-xdr
+  version: e6a2ba005892b6a5b27cb5352f64c2e96942dd28
+  subpackages:
+  - xdr2
+- name: github.com/marcopeereboom/goutil
+  version: 30a0823e951a0a83c401091737f2b1957d163dd0
+- name: github.com/marcopeereboom/lockfile
+  version: ef9e288e8c1efac469aa03ec8cb7edb7c5ad42db
+- name: github.com/mattn/go-runewidth
+  version: 737072b4e32b7a5018b4a7125da8d12de90e8045
+- name: github.com/mitchellh/go-homedir
+  version: 756f7b183b7ab78acdbbee5c7f392838ed459dda
+- name: github.com/nsf/termbox-go
+  version: b6acae516ace002cb8105a89024544a1480655a5
+- name: github.com/vaughan0/go-ini
+  version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1
+- name: golang.org/x/crypto
+  version: ede567c8e044a5913dad1d1af3696d9da953104c
+  subpackages:
+  - curve25519
+  - nacl/secretbox
+  - pbkdf2
+  - poly1305
+  - salsa20/salsa
+  - scrypt
+testImports:
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
