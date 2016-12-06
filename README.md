@@ -96,7 +96,7 @@ Create a zkclient directory and copy the config file in place and then edit the
 config file.
 ```bash
 $ mkdir ~/.zkclient
-$ cp $GOPATH/src/github.com/companyzero/zkc/zkserver/zkclient.conf ~/.zkclient/
+$ cp $GOPATH/src/github.com/companyzero/zkc/zkclient/zkclient.conf ~/.zkclient/
 $ vi ~/.zkclient/zkclient.conf
 ```
 
