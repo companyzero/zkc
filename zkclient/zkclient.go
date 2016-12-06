@@ -1680,7 +1680,7 @@ func _main() error {
 		}
 	}
 
-	if foundClientIdentity == false {
+	if !foundClientIdentity {
 		// obtain local identity info
 		usr, err = user.Current()
 		if err != nil {
@@ -1735,7 +1735,7 @@ func _main() error {
 	// setup high and low prio message channels
 	z.scheduler()
 
-	if foundClientIdentity == false {
+	if !foundClientIdentity {
 		// create and focus on welcome window
 		ww := &welcomeWindow{
 			name: usr.Name,
