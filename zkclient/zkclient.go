@@ -1644,6 +1644,9 @@ func _main() error {
 
 	// see if we have a myserver.ini
 	var server *inidb.INIDB
+	var foundServerIdentity bool
+	var foundClientIdentity bool
+	var usr *user.User
 
 	for tries := 0; tries < 3; tries++ {
 		server, err = inidb.New(filename, false, 10)
@@ -1658,6 +1661,7 @@ func _main() error {
 			continue
 		}
 		if err == nil {
+			foundServerIdentity = true
 			// obtain all entries from ini
 			err = z.parseMyServer(server)
 			if err != nil {
@@ -1666,6 +1670,28 @@ func _main() error {
 			}
 		}
 		break
+	}
+
+	// server and client identities are stored together
+	if foundServerIdentity {
+		err = z.parseMyIdentity(server)
+		if err == nil {
+			foundClientIdentity = true
+		}
+	}
+
+	if !foundClientIdentity {
+		// obtain local identity info
+		usr, err = user.Current()
+		if err != nil {
+			return err
+		}
+
+		z.id, err = zkidentity.New(usr.Name, usr.Username)
+		if err != nil {
+			// really can't happen
+			return fmt.Errorf("could not create new identity")
+		}
 	}
 
 	// initialize terminal
@@ -1694,25 +1720,6 @@ func _main() error {
 	}
 	z.ttkKAW = ttk.NewWindow(z.kaw)
 
-	var newIdentity bool
-	var usr *user.User
-	err = z.parseMyIdentity(server)
-	if err != nil {
-		// obtain local identity info
-		usr, err = user.Current()
-		if err != nil {
-			return err
-		}
-
-		// create new identity
-		newIdentity = true
-		z.id, err = zkidentity.New(usr.Name, usr.Username)
-		if err != nil {
-			// really can't happen
-			return fmt.Errorf("could not create new identity")
-		}
-	}
-
 	// bootstrap all known
 	err = z.loadIdentities()
 	if err != nil {
@@ -1728,7 +1735,7 @@ func _main() error {
 	// setup high and low prio message channels
 	z.scheduler()
 
-	if newIdentity {
+	if !foundClientIdentity {
 		// create and focus on welcome window
 		ww := &welcomeWindow{
 			name: usr.Name,
