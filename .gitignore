@@ -2,6 +2,7 @@
 *~
 *.diff
 *.orig
+scripts/zkc*
 zkserver/zkserver
 zkclient/zkclient
 vendor/
