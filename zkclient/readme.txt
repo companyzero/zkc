@@ -14,7 +14,7 @@ ZKC command overview
 					book, invites, joins or group chat entries
 /w <window>	Switch active chat window
 /wc		Close current window.
-/build		Display last git commit digest.
+/version	Display both software and RPC protocol versions.
 /send <nick> <filename> [description]	Send file.
 /reset <nick>				reset ratchet with nick.
 /addressbook <del> <nick>		Permanently delete user nick.
