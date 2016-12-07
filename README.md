@@ -16,11 +16,6 @@ mature project.**
 
 ## Installation
 
-Currently zkc must be compiled and installed using an install script.  The
-reason for this is to embed the git digest in the binary.  This will change at
-some point in the future but for now simply run install.sh.  See Build from
-Source for details.
-
 #### Windows/Linux/BSD/MacOSX/POSIX - Build from Source
 
 - Install Go according to the installation instructions here:
@@ -39,7 +34,7 @@ $ go get -u github.com/Masterminds/glide
 $ git clone https://github.com/companyzero/zkc
 $ cd $GOPATH/src/github.com/companyzero/zkc
 $ glide install
-$ ./install.sh
+$ go install ./...
 ```
 
 - zkc (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
