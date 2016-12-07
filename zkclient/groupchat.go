@@ -455,7 +455,7 @@ func (z *ZKC) gcKill(args []string) error {
 	return nil
 }
 
-func (z *ZKC) gcMessage(args []string, msg string, mode uint32) error {
+func (z *ZKC) gcMessage(args []string, msg string, mode rpc.MessageMode) error {
 	if len(args) < 4 {
 		return fmt.Errorf("usage: /gc m|me <group> <message>")
 	}
