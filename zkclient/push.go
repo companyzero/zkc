@@ -526,7 +526,7 @@ func (z *ZKC) handlePm(msg rpc.Message, p rpc.Push,
 	}
 
 	var n string
-	if pm.Mode == 1 {
+	if pm.Mode == rpc.MessageModeMe {
 		n = fmt.Sprintf("* %v", z.settings.PmColor+c.nick+RESET)
 	} else {
 		n = fmt.Sprintf("<%v>", z.settings.PmColor+c.nick+RESET)
@@ -1022,7 +1022,8 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 	// see if we were mentioned
 	s := gm.Message
 	if x := strings.Index(strings.ToUpper(gm.Message),
-		strings.ToUpper(z.id.Public.Nick)); x != -1 && gm.Mode == 0 {
+		strings.ToUpper(z.id.Public.Nick)); x != -1 &&
+		gm.Mode == rpc.MessageModeNormal {
 
 		z.Lock()
 		if z.active != win {
@@ -1038,7 +1039,7 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 	}
 
 	var n string
-	if gm.Mode == 1 {
+	if gm.Mode == rpc.MessageModeMe {
 		n = fmt.Sprintf("* %v", z.settings.GcColor+nick+RESET)
 	} else {
 		n = fmt.Sprintf("<%v>", z.settings.GcColor+nick+RESET)

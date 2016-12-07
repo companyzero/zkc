@@ -493,7 +493,7 @@ func (z *ZKC) gcMessage(args []string, msg string, mode uint32) error {
 
 	// echo
 	var nick string
-	if mode == 1 {
+	if mode == rpc.MessageModeMe {
 		nick = fmt.Sprintf("* %v", z.settings.NickColor+z.id.Public.Nick+RESET)
 	} else {
 		nick = fmt.Sprintf("<%v>", z.settings.NickColor+z.id.Public.Nick+RESET)
