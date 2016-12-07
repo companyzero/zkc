@@ -23,6 +23,7 @@ var (
 	cmdKx            = leader + "kx"
 	cmdList          = leader + "list"
 	cmdM             = leader + "m" // alias for message
+	cmdMe            = leader + "me"
 	cmdMsg           = leader + "msg"
 	cmdOffline       = leader + "offline"
 	cmdOnline        = leader + "online"
@@ -126,6 +127,11 @@ var (
 			command:     cmdM,
 			usage:       cmdM + " <nick> <message>",
 			description: "alias for " + cmdMsg,
+		},
+		{
+			command:     cmdMe,
+			usage:       cmdMe + " <message>",
+			description: "send a message that is prefixed by * nick",
 		},
 		{
 			command:     cmdMsg,

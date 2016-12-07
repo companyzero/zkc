@@ -457,7 +457,7 @@ func (z *ZKC) gcKill(args []string) error {
 	return nil
 }
 
-func (z *ZKC) gcMessage(args []string, msg string) error {
+func (z *ZKC) gcMessage(args []string, msg string, mode uint32) error {
 	if len(args) < 4 {
 		return fmt.Errorf("usage: /gc m <group> <message>")
 	}
@@ -487,13 +487,18 @@ func (z *ZKC) gcMessage(args []string, msg string) error {
 			Name:       args[2],
 			Generation: gc.Generation,
 			Message:    msg,
+			Mode:       mode,
 		})
 	}
 
 	// echo
-	z.PrintfT(win, "<%v> %v",
-		z.settings.NickColor+z.id.Public.Nick+RESET,
-		msg)
+	var nick string
+	if mode == 1 {
+		nick = fmt.Sprintf("* %v", z.settings.NickColor+z.id.Public.Nick+RESET)
+	} else {
+		nick = fmt.Sprintf("<%v>", z.settings.NickColor+z.id.Public.Nick+RESET)
+	}
+	z.PrintfT(win, "%v %v", nick, msg)
 
 	return nil
 }
@@ -519,7 +524,7 @@ func (z *ZKC) gc(action string, args []string) error {
 		msg := strings.TrimSpace(strings.TrimPrefix(action, "/gc"))
 		msg = strings.TrimSpace(strings.TrimPrefix(msg, "m"))
 		msg = strings.TrimRight(strings.TrimPrefix(msg, args[2]+" "), " ")
-		return z.gcMessage(args, msg)
+		return z.gcMessage(args, msg, 0)
 
 	case "part":
 		return z.gcPart(args)

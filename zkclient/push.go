@@ -525,9 +525,13 @@ func (z *ZKC) handlePm(msg rpc.Message, p rpc.Push,
 		return fmt.Errorf("unknown conversation: %v", err)
 	}
 
-	z.PrintfTS(win, time.Unix(p.Received, 0), "<%v> %v",
-		z.settings.PmColor+c.nick+RESET,
-		pm.Text)
+	var n string
+	if pm.Mode == 1 {
+		n = fmt.Sprintf("* %v", z.settings.PmColor+c.nick+RESET)
+	} else {
+		n = fmt.Sprintf("<%v>", z.settings.PmColor+c.nick+RESET)
+	}
+	z.PrintfTS(win, time.Unix(p.Received, 0), "%v %v", n, pm.Text)
 
 	// annoy people
 	if z.settings.Beep {
@@ -1018,7 +1022,7 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 	// see if we were mentioned
 	s := gm.Message
 	if x := strings.Index(strings.ToUpper(gm.Message),
-		strings.ToUpper(z.id.Public.Nick)); x != -1 {
+		strings.ToUpper(z.id.Public.Nick)); x != -1 && gm.Mode == 0 {
 
 		z.Lock()
 		if z.active != win {
@@ -1033,9 +1037,13 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 
 	}
 
-	z.PrintfTS(win, time.Unix(p.Received, 0), "<%v> %v",
-		z.settings.GcColor+nick+RESET,
-		s)
+	var n string
+	if gm.Mode == 1 {
+		n = fmt.Sprintf("* %v", z.settings.GcColor+nick+RESET)
+	} else {
+		n = fmt.Sprintf("<%v>", z.settings.GcColor+nick+RESET)
+	}
+	z.PrintfTS(win, time.Unix(p.Received, 0), "%v %v", n, s)
 
 	// annoy people
 	if z.settings.Beep {
