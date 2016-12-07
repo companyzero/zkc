@@ -38,6 +38,8 @@ import (
 	"github.com/companyzero/zkc/zkidentity"
 )
 
+type MessageMode uint32
+
 const (
 	// pre session phase
 	InitialCmdIdentify      = "identify"
@@ -59,8 +61,8 @@ const (
 	TaggedCmdPong                = "pong"
 
 	// misc
-	MessageModeNormal = 0
-	MessageModeMe     = 1
+	MessageModeNormal MessageMode = 0
+	MessageModeMe     MessageMode = 1
 )
 
 // CreateAccount is a PRPC that is used to create a new account on the server.
@@ -93,7 +95,7 @@ type Message struct {
 type Empty struct{}
 
 const (
-	ProtocolVersion = 5
+	ProtocolVersion = 6
 )
 
 // Welcome is written immediately following a key exchange.  This command
@@ -309,7 +311,7 @@ type CRPC struct {
 // PrivateMessage is a CRPC that contains a text message.
 type PrivateMessage struct {
 	Text string
-	Mode uint32 // 0 regular mode, 1 /me
+	Mode MessageMode // 0 regular mode, 1 /me
 }
 
 // JanitorMessage is a CRPC that tells the other party some sort of
@@ -371,10 +373,10 @@ type GroupList struct {
 
 // GroupMessage is a message to a group.
 type GroupMessage struct {
-	Name       string // group name
-	Generation uint64 // Generation used
-	Message    string // Actual message
-	Mode       uint32 // 0 regular mode, 1 /me
+	Name       string      // group name
+	Generation uint64      // Generation used
+	Message    string      // Actual message
+	Mode       MessageMode // 0 regular mode, 1 /me
 }
 
 // ChunkNew describes a chunked file transfer initiation.

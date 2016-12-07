@@ -416,7 +416,7 @@ func (z *ZKC) crpc(r *ratchet.Ratchet, payload interface{}) ([]byte, error) {
 	return blob, nil
 }
 
-func (z *ZKC) pm(id [zkidentity.IdentitySize]byte, message string, mode uint32) error {
+func (z *ZKC) pm(id [zkidentity.IdentitySize]byte, message string, mode rpc.MessageMode) error {
 	z.scheduleCRPC(true, &id,
 		rpc.PrivateMessage{
 			Text: message,
