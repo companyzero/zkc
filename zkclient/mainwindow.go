@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/companyzero/ttk"
+	"github.com/companyzero/zkc/rpc"
+	"github.com/companyzero/zkc/zkutil"
 	"github.com/nsf/termbox-go"
 )
 
@@ -30,8 +32,6 @@ var (
 
 	STATUSWHITEBOLD, STATUSCYAN, STATUSRESET string // status colors
 	STATUSMAGENTABOLD                        string
-
-	appBuild string // git build
 )
 
 func init() {
@@ -600,8 +600,9 @@ func (mw *mainWindow) action(cmd string) error {
 		close(mw.quitC)
 		return nil
 
-	case cmdBuild:
-		mw.zkc.PrintfT(-1, "Last commit: %v", appBuild)
+	case cmdVersion:
+		mw.zkc.PrintfT(-1, "Version: %v, RPC Protocol: %v",
+			zkutil.Version(), rpc.ProtocolVersion)
 		return nil
 
 	case cmdHelp:

@@ -1837,19 +1837,6 @@ func _main() error {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	if appBuild == "" {
-		fmt.Fprintf(os.Stderr, "Application not built correctly.\n\n")
-		fmt.Fprintf(os.Stderr, "Use one of the following methods to "+
-			"build zkc:\n")
-		fmt.Fprintf(os.Stderr, "\tgo install -ldflags \"-X "+
-			"main.appBuild=$(git rev-parse HEAD)\" -v ./...\n")
-		fmt.Fprintf(os.Stderr, "\tgo build -ldflags \"-X "+
-			"main.appBuild=$(git rev-parse HEAD)\" -v\n\n")
-		fmt.Fprintf(os.Stderr, "Or you can call install.sh "+
-			"which automates this process\n")
-		os.Exit(1)
-	}
-
 	err := _main()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

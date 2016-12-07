@@ -15,7 +15,7 @@ var (
 	leader = "/"
 
 	cmdAcceptnewcert = leader + "acceptnewcert"
-	cmdBuild         = leader + "build"
+	cmdVersion       = leader + "version"
 	cmdHelp          = leader + "help"
 	cmdFetch         = leader + "fetch"
 	cmdGc            = leader + "gc"
@@ -49,9 +49,9 @@ var (
 			},
 		},
 		{
-			command:     cmdBuild,
-			usage:       cmdBuild,
-			description: "print application git version",
+			command:     cmdVersion,
+			usage:       cmdVersion,
+			description: "print application version",
 		},
 		{
 			command:     cmdHelp,
