@@ -460,6 +460,47 @@ func (mw *mainWindow) action(cmd string) error {
 
 		return nil
 
+	case cmdMe:
+		if len(args) < 2 {
+			return mw.doUsage(args)
+		}
+
+		var (
+			c *conversation
+		)
+		mw.zkc.RLock()
+		if mw.zkc.active != 0 {
+			c = mw.zkc.conversation[mw.zkc.active]
+			if c == nil {
+				mw.zkc.RUnlock()
+				return fmt.Errorf("invalid conversation")
+			}
+		} else {
+			mw.zkc.RUnlock()
+			return fmt.Errorf(cmdMe + " invalid on console")
+		}
+		mw.zkc.RUnlock()
+
+		msg := strings.TrimSpace(strings.TrimPrefix(cmd, args[0]))
+
+		if c.group {
+			// just fake it
+			a := []string{"/gc", "me", c.nick, msg}
+			return mw.zkc.gcMessage(a, msg, rpc.MessageModeMe)
+		} else {
+			err := mw.zkc.pm(c.id.Identity, msg, rpc.MessageModeMe)
+			if err != nil {
+				return err
+			}
+		}
+
+		// echo
+		mw.zkc.PrintfT(-1, "* %v %v",
+			mw.zkc.settings.NickColor+mw.zkc.id.Public.Nick+RESET,
+			msg)
+
+		return nil
+
 	case cmdMsg, cmdM:
 		if len(args) < 3 {
 			return mw.doUsage(args)
@@ -494,7 +535,7 @@ func (mw *mainWindow) action(cmd string) error {
 			}
 		}
 
-		err = mw.zkc.pm(c.id.Identity, msg)
+		err = mw.zkc.pm(c.id.Identity, msg, rpc.MessageModeNormal)
 		if err != nil {
 			return err
 		}

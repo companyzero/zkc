@@ -23,6 +23,7 @@ var (
 	cmdKx            = leader + "kx"
 	cmdList          = leader + "list"
 	cmdM             = leader + "m" // alias for message
+	cmdMe            = leader + "me"
 	cmdMsg           = leader + "msg"
 	cmdOffline       = leader + "offline"
 	cmdOnline        = leader + "online"
@@ -70,7 +71,7 @@ var (
 		},
 		{
 			command:     cmdGc,
-			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <message> | <part>",
+			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <me> | <message> | <part>",
 			description: "group chat command",
 			long: []string{
 				"invite invites a user to a group chat.  Usage " + cmdGc + " invite <groupchat> <nick>",
@@ -126,6 +127,11 @@ var (
 			command:     cmdM,
 			usage:       cmdM + " <nick> <message>",
 			description: "alias for " + cmdMsg,
+		},
+		{
+			command:     cmdMe,
+			usage:       cmdMe + " <message>",
+			description: "send a message that is prefixed by * nick",
 		},
 		{
 			command:     cmdMsg,
