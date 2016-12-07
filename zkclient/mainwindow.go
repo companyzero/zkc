@@ -486,9 +486,9 @@ func (mw *mainWindow) action(cmd string) error {
 		if c.group {
 			// just fake it
 			a := []string{"/gc", "m", c.nick, msg}
-			return mw.zkc.gcMessage(a, msg, 1)
+			return mw.zkc.gcMessage(a, msg, rpc.MessageModeMe)
 		} else {
-			err := mw.zkc.pm(c.id.Identity, msg, 1)
+			err := mw.zkc.pm(c.id.Identity, msg, rpc.MessageModeMe)
 			if err != nil {
 				return err
 			}
@@ -535,7 +535,7 @@ func (mw *mainWindow) action(cmd string) error {
 			}
 		}
 
-		err = mw.zkc.pm(c.id.Identity, msg, 0)
+		err = mw.zkc.pm(c.id.Identity, msg, rpc.MessageModeNormal)
 		if err != nil {
 			return err
 		}

@@ -71,7 +71,7 @@ var (
 		},
 		{
 			command:     cmdGc,
-			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <message> | <part>",
+			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <me> | <message> | <part>",
 			description: "group chat command",
 			long: []string{
 				"invite invites a user to a group chat.  Usage " + cmdGc + " invite <groupchat> <nick>",

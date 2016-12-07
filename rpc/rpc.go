@@ -57,6 +57,10 @@ const (
 	TaggedCmdAcknowledge         = "ack"
 	TaggedCmdPing                = "ping"
 	TaggedCmdPong                = "pong"
+
+	// misc
+	MessageModeNormal = 0
+	MessageModeMe     = 1
 )
 
 // CreateAccount is a PRPC that is used to create a new account on the server.

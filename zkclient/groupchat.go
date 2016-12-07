@@ -459,7 +459,7 @@ func (z *ZKC) gcKill(args []string) error {
 
 func (z *ZKC) gcMessage(args []string, msg string, mode uint32) error {
 	if len(args) < 4 {
-		return fmt.Errorf("usage: /gc m <group> <message>")
+		return fmt.Errorf("usage: /gc m|me <group> <message>")
 	}
 
 	c, win, err := z.groupConversation(args[2])
@@ -517,6 +517,15 @@ func (z *ZKC) gc(action string, args []string) error {
 	case "kick":
 		return z.gcKick(args)
 
+	case "me":
+		if len(args) < 3 {
+			return fmt.Errorf("not enough arguments for /gc me")
+		}
+		msg := strings.TrimSpace(strings.TrimPrefix(action, "/gc"))
+		msg = strings.TrimSpace(strings.TrimPrefix(msg, "me"))
+		msg = strings.TrimRight(strings.TrimPrefix(msg, args[2]+" "), " ")
+		return z.gcMessage(args, msg, rpc.MessageModeMe)
+
 	case "m":
 		if len(args) < 3 {
 			return fmt.Errorf("not enough arguments for /gc m")
@@ -524,7 +533,7 @@ func (z *ZKC) gc(action string, args []string) error {
 		msg := strings.TrimSpace(strings.TrimPrefix(action, "/gc"))
 		msg = strings.TrimSpace(strings.TrimPrefix(msg, "m"))
 		msg = strings.TrimRight(strings.TrimPrefix(msg, args[2]+" "), " ")
-		return z.gcMessage(args, msg, 0)
+		return z.gcMessage(args, msg, rpc.MessageModeNormal)
 
 	case "part":
 		return z.gcPart(args)
