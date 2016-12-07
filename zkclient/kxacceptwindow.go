@@ -61,7 +61,7 @@ func (ka *kxAcceptWindow) Status(w *ttk.Window, bad bool, format string,
 }
 
 func (ka *kxAcceptWindow) Render(w *ttk.Window) {
-	// do nothing for now
+	ka.password = ""
 }
 
 func (ka *kxAcceptWindow) Init(w *ttk.Window) {
