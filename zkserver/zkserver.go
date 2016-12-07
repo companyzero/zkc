@@ -30,6 +30,7 @@ import (
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkserver/account"
 	"github.com/companyzero/zkc/zkserver/settings"
+	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/davecgh/go-xdr/xdr2"
 )
@@ -650,6 +651,10 @@ func _main() error {
 	// register remaining subsystems
 	z.Register(idRPC, "[RPC]")
 	z.Register(idS, "[SES]")
+
+	// print version
+	z.Info(idApp, "Version: %v, RPC Protocol: %v",
+		zkutil.Version(), rpc.ProtocolVersion)
 
 	// identity
 	id, err := ioutil.ReadFile(path.Join(z.settings.Root,
