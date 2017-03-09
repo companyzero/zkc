@@ -34,7 +34,7 @@ $ go get -u github.com/Masterminds/glide
 $ git clone https://github.com/companyzero/zkc
 $ cd $GOPATH/src/github.com/companyzero/zkc
 $ glide install
-$ go install ./...
+$ go install $(glide nv)
 ```
 
 - zkc (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
