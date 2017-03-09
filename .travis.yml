@@ -1,21 +1,22 @@
 language: go
 go:
-    - 1.7.4
+  - 1.7.x
+  - 1.8.x
 sudo: false
 install:
-    - go get -v github.com/Masterminds/glide
-    - glide install
-    - go get -v github.com/alecthomas/gometalinter
-    - gometalinter --install
+  - go get -v github.com/Masterminds/glide
+  - glide install
+  - go get -v github.com/alecthomas/gometalinter
+  - gometalinter --install
 script:
-    - export PATH=$PATH:$HOME/gopath/bin
-    - export GORACE="halt_on_error=1"
-    - test -z "$(gometalinter --disable-all
+  - export PATH=$PATH:$HOME/gopath/bin
+  - export GORACE="halt_on_error=1"
+  - test -z "$(gometalinter --disable-all
       --enable=gofmt
       --enable=vet
       --enable=unconvert
       --deadline=4m $(glide novendor) | tee /dev/stderr)"
-    - go test -v -race $(glide novendor)
+  - go test -v -race $(glide novendor)
 #after_success:
 #    - go get -v github.com/mattn/goveralls
 #    - goveralls -coverprofile=profile.cov -service=travis-ci
