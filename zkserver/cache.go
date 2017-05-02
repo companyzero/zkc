@@ -10,12 +10,12 @@ import (
 	"path"
 
 	"github.com/companyzero/zkc/rpc"
-	"github.com/companyzero/zkc/sigma"
+	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/zkidentity"
 )
 
 // think about establishing whitelist or just blind deliver
-func (z *ZKS) handleCache(writer chan *RPCWrapper, kx *sigma.SigmaKX,
+func (z *ZKS) handleCache(writer chan *RPCWrapper, kx *session.KX,
 	msg rpc.Message, cache rpc.Cache) error {
 
 	// sanity

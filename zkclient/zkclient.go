@@ -28,7 +28,7 @@ import (
 	"github.com/companyzero/zkc/debug"
 	"github.com/companyzero/zkc/inidb"
 	"github.com/companyzero/zkc/rpc"
-	"github.com/companyzero/zkc/sigma"
+	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/tagstack"
 	"github.com/companyzero/zkc/tools"
 	"github.com/companyzero/zkc/zkclient/addressbook"
@@ -534,7 +534,7 @@ type ZKC struct {
 	lastTick        time.Time     // keepalive ticker
 	lastDuration    time.Duration // how many seconds before next ping
 	pingInProgress  bool          // waiting on pong?
-	kx              *sigma.SigmaKX
+	kx              *session.KX
 	cert            []byte // remote cert for outer fingerprint
 	provisionalCert []byte // used when cert changed
 	tagStack        *tagstack.TagStack
@@ -650,7 +650,7 @@ func (z *ZKC) preSessionPhase() (net.Conn, *tls.ConnectionState, error) {
 	return conn, &cs, nil
 }
 
-func (z *ZKC) sessionPhase(conn net.Conn) (*sigma.SigmaKX, error) {
+func (z *ZKC) sessionPhase(conn net.Conn) (*session.KX, error) {
 	if z.id == nil || z.serverIdentity == nil {
 		return nil, fmt.Errorf("can not go full session prior to dial")
 	}
@@ -661,20 +661,24 @@ func (z *ZKC) sessionPhase(conn net.Conn) (*sigma.SigmaKX, error) {
 		return nil, fmt.Errorf("could not marshal session command")
 	}
 
-	// sigma with server and use a default msgSize
-	kx := sigma.NewClient(&z.id.Public.Identity, &z.id.PrivateIdentity,
-		&z.serverIdentity.Identity, z.msgSize)
-	err = kx.Initiator(conn)
+	// session with server and use a default msgSize
+	kx := new(session.KX)
+	kx.Conn = conn
+	kx.MaxMessageSize = z.msgSize
+	kx.OurPublicKey = &z.id.Public.Key
+	kx.OurPrivateKey = &z.id.PrivateKey
+	kx.TheirPublicKey = &z.serverIdentity.Key
+	err = kx.Initiate()
 	if err != nil {
-		return nil, fmt.Errorf("could not complete key exchange: %v",
-			err)
+		conn.Close()
+		return nil, fmt.Errorf("could not complete key exchange: %v", err)
 	}
 
 	return kx, nil
 }
 
 // lock must be held
-func (z *ZKC) welcomePhase(kx *sigma.SigmaKX) (*rpc.Welcome, error) {
+func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 	// obtain Welcome
 	var (
 		command rpc.Message
@@ -1021,7 +1025,7 @@ func (z *ZKC) handleRPC() {
 				z.Dbg(idZKC, "connection closed")
 				return
 			}
-			if err == sigma.ErrDecrypt {
+			if err == session.ErrDecrypt {
 				exitError = fmt.Errorf("invalid header: %v", err)
 			} else {
 				exitError = fmt.Errorf("kx.Read: invalid header")

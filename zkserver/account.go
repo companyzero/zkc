@@ -5,7 +5,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"net"
 
@@ -61,7 +60,7 @@ func (z *ZKS) handleAccountCreate(conn net.Conn, ca rpc.CreateAccount) error {
 	} else {
 		z.Info(idApp, "created account %v: %v",
 			conn.RemoteAddr(),
-			hex.EncodeToString(ca.PublicIdentity.Identity[:]))
+			ca.PublicIdentity.Fingerprint())
 	}
 
 	// send reply
