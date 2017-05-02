@@ -14,9 +14,8 @@ import (
 	"fmt"
 
 	"github.com/agl/ed25519"
-	"github.com/agl/ed25519/extra25519"
+	"github.com/companyzero/ntruprime"
 	"github.com/davecgh/go-xdr/xdr2"
-	"golang.org/x/crypto/curve25519"
 )
 
 var (
@@ -27,16 +26,28 @@ var (
 )
 
 const (
-	privKeySize   = ed25519.PrivateKeySize
-	SignatureSize = ed25519.SignatureSize
-	pubKeySize    = ed25519.PublicKeySize
-	IdentitySize  = 32
+	IdentitySize  = sha256.Size
 )
 
+// A zkc public identity consists of a name and nick (e.g "John Doe" and "jd"
+// respectively), a ed25519 public signature key, and a NTRU Prime public key
+// (used to derive symmetric encryption keys). An extra Identity field, taken
+// as the SHA256 of the NTRU public key, is used as a short handle to uniquely
+// identify a user in various zkc structures.
+type PublicIdentity struct {
+	Name		string
+	Nick		string
+	SigKey		[ed25519.PublicKeySize]byte
+	Key		[ntruprime.PublicKeySize]byte
+	Identity	[sha256.Size]byte
+	Digest		[sha256.Size]byte // digest of name, keys and identity
+	Signature	[ed25519.SignatureSize]byte // signature of Digest
+}
+
 type FullIdentity struct {
-	Public          PublicIdentity     // public key and identity
-	PrivateKey      [privKeySize]byte  // private key, exported for marshaling
-	PrivateIdentity [IdentitySize]byte // private key, exported for marshaling
+	Public		PublicIdentity
+	PrivateSigKey	[ed25519.PrivateKeySize]byte
+	PrivateKey	[ntruprime.PrivateKeySize]byte
 }
 
 func (fi *FullIdentity) Marshal() ([]byte, error) {
@@ -60,42 +71,36 @@ func UnmarshalFullIdentity(data []byte) (*FullIdentity, error) {
 	return &fi, nil
 }
 
-type PublicIdentity struct {
-	Name     string             // long name, e.g. John Doe
-	Nick     string             // short name, e.g. jd
-	Key      [pubKeySize]byte   // public key
-	Identity [IdentitySize]byte // public identity
-
-	Digest    [sha256.Size]byte   // digest of Name, Key and Identity
-	Signature [SignatureSize]byte // signature of Digest
-}
-
 func New(name, nick string) (*FullIdentity, error) {
-	fi := FullIdentity{}
-	pub, priv, err := ed25519.GenerateKey(prng)
+	ed25519Pub, ed25519Priv, err := ed25519.GenerateKey(prng)
 	if err != nil {
 		return nil, err
 	}
+	ntruprimePub, ntruprimePriv, err := ntruprime.GenerateKey(prng)
+	if err != nil {
+		return nil, err
+	}
+	identity := sha256.Sum256(ntruprimePub[:])
 
-	// move keys in place
-	copy(fi.Public.Key[:], pub[:])
-	copy(fi.PrivateKey[:], priv[:])
-	zero(pub[:])
-	zero(priv[:])
-
-	// obtain identities
-	extra25519.PrivateKeyToCurve25519(&fi.PrivateIdentity, &fi.PrivateKey)
-	curve25519.ScalarBaseMult(&fi.Public.Identity, &fi.PrivateIdentity)
-
+	fi := new(FullIdentity)
 	fi.Public.Name = name
 	fi.Public.Nick = nick
-
+	copy(fi.Public.SigKey[:], ed25519Pub[:])
+	copy(fi.Public.Key[:], ntruprimePub[:])
+	copy(fi.Public.Identity[:], identity[:])
+	copy(fi.PrivateSigKey[:], ed25519Priv[:])
+	copy(fi.PrivateKey[:], ntruprimePriv[:])
 	err = fi.RecalculateDigest()
 	if err != nil {
 		return nil, err
 	}
 
-	return &fi, nil
+	zero(ed25519Pub[:])
+	zero(ed25519Priv[:])
+	zero(ntruprimePub[:])
+	zero(ntruprimePriv[:])
+
+	return fi, nil
 }
 
 func Fingerprint(id [IdentitySize]byte) string {
@@ -120,12 +125,13 @@ func (fi *FullIdentity) RecalculateDigest() error {
 	d := sha256.New()
 	d.Write([]byte(fi.Public.Name))
 	d.Write([]byte(fi.Public.Nick))
+	d.Write(fi.Public.SigKey[:])
 	d.Write(fi.Public.Key[:])
 	d.Write(fi.Public.Identity[:])
 	copy(fi.Public.Digest[:], d.Sum(nil))
 
 	// sign and verify
-	signature := ed25519.Sign(&fi.PrivateKey, fi.Public.Digest[:])
+	signature := ed25519.Sign(&fi.PrivateSigKey, fi.Public.Digest[:])
 	copy(fi.Public.Signature[:], signature[:])
 	if !fi.Public.Verify() {
 		return fmt.Errorf("could not verify public signature")
@@ -134,13 +140,13 @@ func (fi *FullIdentity) RecalculateDigest() error {
 	return nil
 }
 
-func (fi *FullIdentity) SignMessage(message []byte) [SignatureSize]byte {
-	signature := ed25519.Sign(&fi.PrivateKey, message)
+func (fi *FullIdentity) SignMessage(message []byte) [ed25519.SignatureSize]byte {
+	signature := ed25519.Sign(&fi.PrivateSigKey, message)
 	return *signature
 }
 
-func (p PublicIdentity) VerifyMessage(msg []byte, sig [SignatureSize]byte) bool {
-	return ed25519.Verify(&p.Key, msg, &sig)
+func (p PublicIdentity) VerifyMessage(msg []byte, sig [ed25519.SignatureSize]byte) bool {
+	return ed25519.Verify(&p.SigKey, msg, &sig)
 }
 
 func (p PublicIdentity) String() string {
@@ -155,12 +161,13 @@ func (p *PublicIdentity) Verify() bool {
 	d := sha256.New()
 	d.Write([]byte(p.Name))
 	d.Write([]byte(p.Nick))
+	d.Write(p.SigKey[:])
 	d.Write(p.Key[:])
 	d.Write(p.Identity[:])
 	if !bytes.Equal(p.Digest[:], d.Sum(nil)) {
 		return false
 	}
-	return ed25519.Verify(&p.Key, p.Digest[:], &p.Signature)
+	return ed25519.Verify(&p.SigKey, p.Digest[:], &p.Signature)
 }
 
 func (p *PublicIdentity) Marshal() ([]byte, error) {
