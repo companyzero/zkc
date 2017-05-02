@@ -24,9 +24,9 @@ import (
 
 	"github.com/companyzero/zkc/debug"
 	"github.com/companyzero/zkc/rpc"
-	"github.com/companyzero/zkc/sigma"
 	"github.com/companyzero/zkc/tagstack"
 	"github.com/companyzero/zkc/tools"
+	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkserver/account"
 	"github.com/companyzero/zkc/zkserver/settings"
@@ -62,7 +62,7 @@ type ZKS struct {
 }
 
 // writeMessage marshals and sends encrypted message to client.
-func (z *ZKS) writeMessage(kx *sigma.SigmaKX, msg *RPCWrapper) error {
+func (z *ZKS) writeMessage(kx *session.KX, msg *RPCWrapper) error {
 	var bb bytes.Buffer
 	_, err := xdr.Marshal(&bb, msg.Message)
 	if err != nil {
@@ -92,7 +92,7 @@ func (z *ZKS) writeMessage(kx *sigma.SigmaKX, msg *RPCWrapper) error {
 	return nil
 }
 
-func (z *ZKS) welcome(kx *sigma.SigmaKX) error {
+func (z *ZKS) welcome(kx *session.KX) error {
 	// obtain message of the day
 	motd, err := ioutil.ReadFile(z.settings.MOTD)
 	if err != nil {
@@ -267,7 +267,7 @@ type sessionContext struct {
 	writer chan *RPCWrapper
 	quit   chan struct{}
 	//done     chan bool
-	kx       *sigma.SigmaKX
+	kx       *session.KX
 	rids     string
 	tagStack *tagstack.TagStack
 
@@ -278,7 +278,7 @@ type sessionContext struct {
 
 // handleSession deals with incoming RPC calls.  For now treat all errors as
 // critical and return which in turns shuts down the connection.
-func (z *ZKS) handleSession(kx *sigma.SigmaKX) error {
+func (z *ZKS) handleSession(kx *session.KX) error {
 	rid, ok := kx.TheirIdentity().([32]byte)
 	if !ok {
 		return fmt.Errorf("invalid KX identity type %T", rid)
@@ -528,12 +528,15 @@ func (z *ZKS) preSession(conn net.Conn) {
 		case rpc.InitialCmdSession:
 			z.T(idApp, "InitialCmdSession: %v", conn.RemoteAddr())
 			// go full session
-			kx := sigma.NewServer(&z.id.Public.Identity,
-				&z.id.PrivateIdentity,
-				uint(z.settings.MaxMsgSize))
-			err = kx.Target(conn)
+			kx := new(session.KX)
+			kx.Conn = conn
+			kx.MaxMessageSize = uint(z.settings.MaxMsgSize)
+			kx.OurPublicKey = &z.id.Public.Key
+			kx.OurPrivateKey = &z.id.PrivateKey
+			err = kx.Respond()
 			if err != nil {
-				z.Error(idApp, "kx.Target: %v %v",
+				conn.Close()
+				z.Error(idApp, "kx.Respond: %v %v",
 					conn.RemoteAddr(),
 					err)
 				return
@@ -605,6 +608,8 @@ func (z *ZKS) listen() error {
 		return fmt.Errorf("could not listen: %v", err)
 	}
 	z.Info(idApp, "Listening on %v", z.settings.Listen)
+
+	session.Init()
 
 	go func() {
 		for {
