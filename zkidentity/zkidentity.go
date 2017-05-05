@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -104,20 +105,7 @@ func New(name, nick string) (*FullIdentity, error) {
 }
 
 func Fingerprint(id [IdentitySize]byte) string {
-	digest := sha256.Sum256(id[:])
-	f := fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
-		digest[0],
-		digest[1],
-		digest[2],
-		digest[3],
-		digest[4],
-		digest[5],
-		digest[6],
-		digest[7],
-		digest[8],
-		digest[9],
-	)
-	return f
+	return base64.StdEncoding.EncodeToString(id[:])
 }
 
 func (fi *FullIdentity) RecalculateDigest() error {
