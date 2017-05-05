@@ -114,7 +114,7 @@ func importClientRecord(root string, force bool, cr tools.ClientRecord) error {
 		return err
 	}
 
-	fmt.Printf("%v %v: %v\n", action, cr.PublicIdentity.Name, i)
+	fmt.Printf("%v %v: %v\n", action, cr.PublicIdentity.Name, cr.PublicIdentity.Fingerprint())
 
 	return nil
 }
@@ -174,7 +174,7 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 		return fmt.Errorf("could not save server: %v", err)
 	}
 
-	fmt.Printf("%v %x\n", action, cr.PublicIdentity.Identity)
+	fmt.Printf("%v %v\n", action, cr.PublicIdentity.Fingerprint())
 
 	return nil
 }
