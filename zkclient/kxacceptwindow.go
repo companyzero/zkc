@@ -119,7 +119,7 @@ func (ka *kxAcceptWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 			return
 		}
 
-		dk, err := blobshare.DeriveKey(ka.password, saltR)
+		dk, err := blobshare.DeriveKey([]byte(ka.password), saltR)
 		if err != nil {
 			ka.Status(w, true, "Could not derive key: %v", err)
 			return

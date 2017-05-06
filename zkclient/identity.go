@@ -121,10 +121,11 @@ func (z *ZKC) loadRatchet(id [zkidentity.IdentitySize]byte,
 	}
 
 	// XXX verify this
-	r.MyIdentityPrivate = &z.id.PrivateIdentity
-	r.MySigningPublic = &z.id.Public.Key
+	r.MyPrivateKey = &z.id.PrivateKey
+	r.MySigningPublic = &z.id.Public.SigKey
 	r.TheirIdentityPublic = &idDisk.Identity
-	r.TheirSigningPublic = &idDisk.Key
+	r.TheirSigningPublic = &idDisk.SigKey
+	r.TheirPublicKey = &idDisk.Key
 
 	return r, nil
 }

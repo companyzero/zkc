@@ -115,7 +115,7 @@ func (kw *kxWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 		kw.Status(w, false, "encrypting public identity")
 
 		blobshare.SetNrp(32768, 16, 2)
-		key, salt, err := blobshare.NewKey(kw.password)
+		key, salt, err := blobshare.NewKey([]byte(kw.password))
 		if err != nil {
 			kw.Status(w, true, "Could not create key: %v ", err)
 			return

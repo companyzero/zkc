@@ -31,7 +31,7 @@ func zero(b []byte) {
 	}
 }
 
-func NewKey(password string) (*[32]byte, *[32]byte, error) {
+func NewKey(password []byte) (*[32]byte, *[32]byte, error) {
 	var (
 		salt [32]byte
 	)
@@ -50,9 +50,9 @@ func NewKey(password string) (*[32]byte, *[32]byte, error) {
 	return key, &salt, nil
 }
 
-func DeriveKey(password string, salt *[32]byte) (*[32]byte, error) {
+func DeriveKey(password []byte, salt *[32]byte) (*[32]byte, error) {
 	var key [32]byte
-	dk, err := scrypt.Key([]byte(password), salt[:], n, r, p, len(key))
+	dk, err := scrypt.Key(password, salt[:], n, r, p, len(key))
 	if err != nil {
 		return nil, err
 	}
