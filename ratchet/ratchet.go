@@ -7,7 +7,6 @@
 package ratchet
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/binary"
@@ -17,6 +16,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/companyzero/ntruprime"
+	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/ratchet/disk"
 
 	"golang.org/x/crypto/curve25519"
@@ -41,14 +42,12 @@ const (
 
 // Ratchet contains the per-contact, crypto state.
 type Ratchet struct {
-	// MyIdentityPrivate and TheirIdentityPublic contain the primary,
-	// curve25519 identity keys. These are pointers because the canonical
-	// copies live in the client and Contact structs.
-	MyIdentityPrivate, TheirIdentityPublic *[32]byte
-	// MySigningPublic and TheirSigningPublic are Ed25519 keys. Again,
-	// these are pointers because the canonical versions are kept
-	// elsewhere.
-	MySigningPublic, TheirSigningPublic *[32]byte
+	MyPrivateKey *[ntruprime.PrivateKeySize]byte
+	MySigningPublic *[32]byte
+	TheirIdentityPublic *[32]byte
+	TheirSigningPublic *[32]byte
+	TheirPublicKey *[ntruprime.PublicKeySize]byte
+
 	// Now is an optional function that will be used to get the current
 	// time. If nil, time.Now is used.
 	Now func() time.Time
@@ -70,10 +69,9 @@ type Ratchet struct {
 	// message key.
 	saved map[[32]byte]map[uint32]savedKey
 
-	// kxPrivate0 and kxPrivate1 contain curve25519 private values during
-	// the key exchange phase. They are not valid once key exchange has
-	// completed.
-	kxPrivate0, kxPrivate1 *[32]byte
+	MyHalf *[32]byte
+	TheirHalf *[32]byte
+	kxPrivate *[32]byte
 
 	// v2 is true if we are using the updated ratchet with better forward
 	// security properties.
@@ -97,37 +95,41 @@ func (r *Ratchet) randBytes(buf []byte) {
 }
 
 func New(rand io.Reader) *Ratchet {
-	r := &Ratchet{
-		rand:       rand,
-		kxPrivate0: new([32]byte),
-		kxPrivate1: new([32]byte),
-		saved:      make(map[[32]byte]map[uint32]savedKey),
-	}
-
-	r.randBytes(r.kxPrivate0[:])
-	r.randBytes(r.kxPrivate1[:])
-
+	r := new(Ratchet)
+	r.rand = rand
+	r.kxPrivate = new([32]byte)
+	r.randBytes(r.kxPrivate[:])
 	return r
 }
 
 type KeyExchange struct {
-	Dh  []byte
-	Dh1 []byte
+	Cipher [ntruprime.CiphertextSize]byte
+	Public []byte
 }
 
 // FillKeyExchange sets elements of kx with key exchange information from the
 // ratchet.
 func (r *Ratchet) FillKeyExchange(kx *KeyExchange) error {
-	if r.kxPrivate0 == nil || r.kxPrivate1 == nil {
-		return errors.New("ratchet: handshake already complete")
+	c, k, err := ntruprime.Encapsulate(r.rand, r.TheirPublicKey)
+	if err != nil {
+		return err
 	}
+	pub := new([32]byte)
+	curve25519.ScalarBaseMult(pub, r.kxPrivate)
+	blobshare.SetNrp(32768, 16, 2)
+	key, salt, err := blobshare.NewKey(k[:])
+	if err != nil {
+		return err
+	}
+	encrypted, nonce, err := blobshare.Encrypt(pub[:], key)
+	if err != nil {
+		return err
+	}
+	packed := blobshare.PackSaltNonce(salt, nonce, encrypted)
 
-	var public0, public1 [32]byte
-	curve25519.ScalarBaseMult(&public0, r.kxPrivate0)
-	curve25519.ScalarBaseMult(&public1, r.kxPrivate1)
-
-	kx.Dh = public0[:]
-	kx.Dh1 = public1[:]
+	r.MyHalf = k
+	copy(kx.Cipher[:], c[:])
+	kx.Public = packed
 
 	return nil
 }
@@ -155,22 +157,21 @@ var (
 	chainKeyStepLabel      = []byte("chain key step")
 )
 
-// validateECDHpoints() performs a set of basic checks on the validity of a
-// peer's randomly chosen ECDH points. The name "points" is slightly
+// validateECDHpoint() performs a set of basic checks on the validity of a
+// peer's randomly chosen ECDH point. The term "point" is slightly
 // misleading, as all we are given are the x-coordinates of a point.
-func validateECDHpoints(p1, p2 []byte) error {
-	if len(p1) != 32 || len(p2) != 32 {
+func validateECDHpoint(p []byte) error {
+	if len(p) != 32 {
 		return errors.New("ratchet: invalid ECDH point length")
 	}
-	p1n := new(big.Int).SetBytes(inv32(p1))
-	p2n := new(big.Int).SetBytes(inv32(p2))
+	pn := new(big.Int).SetBytes(inv32(p))
 	min := big.NewInt(3)
-	if p1n.Cmp(min) == -1 || p2n.Cmp(min) == -1 {
+	if pn.Cmp(min) == -1 {
 		return errors.New("ratchet: invalid ECDH points") // too small
 	}
 	max := big.NewInt(0).Sub(big.NewInt(0).Exp(big.NewInt(2),
 		big.NewInt(255), nil), big.NewInt(19))
-	if p1n.Cmp(max) != -1 || p2n.Cmp(max) != -1 {
+	if pn.Cmp(max) != -1 {
 		return errors.New("ratchet: invalid ECDH points") // too large
 	}
 	return nil
@@ -178,76 +179,62 @@ func validateECDHpoints(p1, p2 []byte) error {
 
 // CompleteKeyExchange takes a KeyExchange message from the other party and
 // establishes the ratchet.
-func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, isV2 bool) error {
-	if r.kxPrivate0 == nil {
-		return errors.New("ratchet: handshake already complete")
+func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, Alice bool) error {
+	k, err := ntruprime.Decapsulate(&kx.Cipher, r.MyPrivateKey)
+	if err != nil {
+		return err
 	}
-	err := validateECDHpoints(kx.Dh, kx.Dh1)
+	r.TheirHalf = k
+
+	blobshare.SetNrp(32768, 16, 2)
+	salt, nonce, data, err := blobshare.UnpackSaltNonce(kx.Public)
+	if err != nil {
+		return err
+	}
+	key, err := blobshare.DeriveKey(k[:], salt)
+	if err != nil {
+		return err
+	}
+	ratchetPublic, err := blobshare.Decrypt(key, nonce, data)
+	if err != nil {
+		return err
+	}
+	err = validateECDHpoint(ratchetPublic)
 	if err != nil {
 		return err
 	}
 
-	var public0 [32]byte
-	curve25519.ScalarBaseMult(&public0, r.kxPrivate0)
-
-	var amAlice bool
-	switch bytes.Compare(public0[:], kx.Dh) {
-	case -1:
-		amAlice = true
-	case 1:
-		amAlice = false
-	case 0:
-		return errors.New("ratchet: peer echoed our own DH values back")
+	d := sha256.New()
+	if Alice {
+		d.Write(r.MyHalf[:])
+		d.Write(r.TheirHalf[:])
+	} else {
+		d.Write(r.TheirHalf[:])
+		d.Write(r.MyHalf[:])
 	}
-
-	var theirDH [32]byte
-	copy(theirDH[:], kx.Dh)
+	sharedKey := d.Sum(nil)
 
 	keyMaterial := make([]byte, 0, 32*5)
-	var sharedKey [32]byte
-	curve25519.ScalarMult(&sharedKey, r.kxPrivate0, &theirDH)
 	keyMaterial = append(keyMaterial, sharedKey[:]...)
-
-	if amAlice {
-		curve25519.ScalarMult(&sharedKey, r.MyIdentityPrivate, &theirDH)
-		keyMaterial = append(keyMaterial, sharedKey[:]...)
-		curve25519.ScalarMult(&sharedKey, r.kxPrivate0, r.TheirIdentityPublic)
-		keyMaterial = append(keyMaterial, sharedKey[:]...)
-		if !isV2 {
-			keyMaterial = append(keyMaterial, r.MySigningPublic[:]...)
-			keyMaterial = append(keyMaterial, r.TheirSigningPublic[:]...)
-		}
-	} else {
-		curve25519.ScalarMult(&sharedKey, r.kxPrivate0, r.TheirIdentityPublic)
-		keyMaterial = append(keyMaterial, sharedKey[:]...)
-		curve25519.ScalarMult(&sharedKey, r.MyIdentityPrivate, &theirDH)
-		keyMaterial = append(keyMaterial, sharedKey[:]...)
-		if !isV2 {
-			keyMaterial = append(keyMaterial, r.TheirSigningPublic[:]...)
-			keyMaterial = append(keyMaterial, r.MySigningPublic[:]...)
-		}
-	}
-
 	h := hmac.New(sha256.New, keyMaterial)
 	deriveKey(&r.rootKey, rootKeyLabel, h)
-	if amAlice {
+
+	if Alice {
 		deriveKey(&r.recvHeaderKey, headerKeyLabel, h)
 		deriveKey(&r.nextSendHeaderKey, sendHeaderKeyLabel, h)
 		deriveKey(&r.nextRecvHeaderKey, nextRecvHeaderKeyLabel, h)
 		deriveKey(&r.recvChainKey, chainKeyLabel, h)
-		copy(r.recvRatchetPublic[:], kx.Dh1)
+		copy(r.recvRatchetPublic[:], ratchetPublic[:])
 	} else {
 		deriveKey(&r.sendHeaderKey, headerKeyLabel, h)
 		deriveKey(&r.nextRecvHeaderKey, sendHeaderKeyLabel, h)
 		deriveKey(&r.nextSendHeaderKey, nextRecvHeaderKeyLabel, h)
 		deriveKey(&r.sendChainKey, chainKeyLabel, h)
-		copy(r.sendRatchetPrivate[:], r.kxPrivate1[:])
+		copy(r.sendRatchetPrivate[:], r.kxPrivate[:])
 	}
 
-	r.ratchet = amAlice
-	r.kxPrivate0 = nil
-	r.kxPrivate1 = nil
-	r.v2 = isV2
+	r.ratchet = Alice
+	r.kxPrivate = nil
 
 	return nil
 }
@@ -566,9 +553,9 @@ func (r *Ratchet) Marshal(now time.Time, lifetime time.Duration) *disk.RatchetSt
 		RecvCount:          r.recvCount,
 		PrevSendCount:      r.prevSendCount,
 		Ratchet:            r.ratchet,
-		Private0:           dup32(r.kxPrivate0),
-		Private1:           dup32(r.kxPrivate1),
-		V2:                 r.v2,
+		Private:            dup32(r.kxPrivate),
+		MyHalf:             dup32(r.MyHalf),
+		TheirHalf:          dup32(r.TheirHalf),
 	}
 
 	for headerKey, messageKeys := range r.saved {
@@ -619,16 +606,33 @@ func (r *Ratchet) Unmarshal(s *disk.RatchetState) error {
 	r.recvCount = s.RecvCount
 	r.prevSendCount = s.PrevSendCount
 	r.ratchet = s.Ratchet
-	r.v2 = s.V2
 
-	if len(s.Private0) > 0 {
-		if !unmarshalKey(r.kxPrivate0, s.Private0) ||
-			!unmarshalKey(r.kxPrivate1, s.Private1) {
+	if len(s.Private) > 0 {
+		if !unmarshalKey(r.kxPrivate, s.Private) {
 			return badSerialisedKeyLengthErr
 		}
 	} else {
-		r.kxPrivate0 = nil
-		r.kxPrivate1 = nil
+		r.kxPrivate = nil
+	}
+	if len(s.MyHalf) > 0 {
+		if r.MyHalf == nil {
+			r.MyHalf = new([32]byte)
+		}
+		if !unmarshalKey(r.MyHalf, s.MyHalf) {
+			return badSerialisedKeyLengthErr
+		}
+	} else {
+		r.MyHalf = nil
+	}
+	if len(s.TheirHalf) > 0 {
+		if r.TheirHalf == nil {
+			r.TheirHalf = new([32]byte)
+		}
+		if !unmarshalKey(r.TheirHalf, s.TheirHalf) {
+			return badSerialisedKeyLengthErr
+		}
+	} else {
+		r.TheirHalf = nil
 	}
 
 	for _, saved := range s.SavedKeys {

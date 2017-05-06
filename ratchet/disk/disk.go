@@ -18,9 +18,9 @@ type RatchetState struct {
 	RecvCount          uint32
 	PrevSendCount      uint32
 	Ratchet            bool
-	V2                 bool
-	Private0           []byte
-	Private1           []byte
+	Private            []byte
+	MyHalf             []byte
+	TheirHalf          []byte
 	SavedKeys          []RatchetState_SavedKeys
 }
 

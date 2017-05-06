@@ -193,10 +193,11 @@ func (z *ZKC) step2IDKX(msg rpc.Message, p rpc.Push) error {
 
 		// create a new ratchet from idkx
 		r := ratchet.New(rand.Reader)
-		r.MyIdentityPrivate = &z.id.PrivateIdentity
-		r.MySigningPublic = &z.id.Public.Key
+		r.MyPrivateKey = &z.id.PrivateKey
+		r.MySigningPublic = &z.id.Public.SigKey
 		r.TheirIdentityPublic = &idkx.Identity.Identity
-		r.TheirSigningPublic = &idkx.Identity.Key
+		r.TheirSigningPublic = &idkx.Identity.SigKey
+		r.TheirPublicKey = &idkx.Identity.Key
 
 		kxRatchet := new(ratchet.KeyExchange)
 		err = r.FillKeyExchange(kxRatchet)
@@ -206,7 +207,7 @@ func (z *ZKC) step2IDKX(msg rpc.Message, p rpc.Push) error {
 		}
 
 		// finalize ratchet
-		err = r.CompleteKeyExchange(&idkx.KX, true)
+		err = r.CompleteKeyExchange(&idkx.KX, false)
 		if err != nil {
 			return fmt.Errorf("could not complete key exchange: %v",
 				err)

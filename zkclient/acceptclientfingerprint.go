@@ -129,10 +129,11 @@ func (aw *acceptCFPWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 
 		// setup a new ratchet
 		r := ratchet.New(rand.Reader)
-		r.MyIdentityPrivate = &aw.zkc.id.PrivateIdentity
-		r.MySigningPublic = &aw.zkc.id.Public.Key
+		r.MyPrivateKey = &aw.zkc.id.PrivateKey
+		r.MySigningPublic = &aw.zkc.id.Public.SigKey
 		r.TheirIdentityPublic = &aw.pid.Identity
-		r.TheirSigningPublic = &aw.pid.Key
+		r.TheirSigningPublic = &aw.pid.SigKey
+		r.TheirPublicKey = &aw.pid.Key
 
 		kxRatchet := new(ratchet.KeyExchange)
 		err := r.FillKeyExchange(kxRatchet)
