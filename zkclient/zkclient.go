@@ -267,7 +267,9 @@ func (z *ZKC) groupConversation(group string) (*conversation, int, error) {
 	z.Unlock()
 
 	c := &conversation{}
-	fi, _ := zkidentity.New("group chat", group)
+	fi := new(zkidentity.FullIdentity)
+	fi.Public.Name = "group chat"
+	fi.Public.Nick = group
 	c.id = &fi.Public
 	c.nick = c.id.Nick
 	c.group = true
