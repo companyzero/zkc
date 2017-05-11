@@ -73,10 +73,6 @@ type Ratchet struct {
 	TheirHalf *[32]byte
 	kxPrivate *[32]byte
 
-	// v2 is true if we are using the updated ratchet with better forward
-	// security properties.
-	v2 bool
-
 	rand io.Reader
 }
 
@@ -251,19 +247,11 @@ func (r *Ratchet) Encrypt(out, msg []byte) []byte {
 		sha.Write(rootKeyUpdateLabel)
 		sha.Write(r.rootKey[:])
 		sha.Write(sharedKey[:])
-
-		if r.v2 {
-			sha.Sum(keyMaterial[:0])
-			h := hmac.New(sha256.New, keyMaterial[:])
-			deriveKey(&r.rootKey, rootKeyLabel, h)
-			deriveKey(&r.nextSendHeaderKey, sendHeaderKeyLabel, h)
-			deriveKey(&r.sendChainKey, chainKeyLabel, h)
-		} else {
-			sha.Sum(r.rootKey[:0])
-			h := hmac.New(sha256.New, r.rootKey[:])
-			deriveKey(&r.nextSendHeaderKey, sendHeaderKeyLabel, h)
-			deriveKey(&r.sendChainKey, chainKeyLabel, h)
-		}
+		sha.Sum(keyMaterial[:0])
+		h := hmac.New(sha256.New, keyMaterial[:])
+		deriveKey(&r.rootKey, rootKeyLabel, h)
+		deriveKey(&r.nextSendHeaderKey, sendHeaderKeyLabel, h)
+		deriveKey(&r.sendChainKey, chainKeyLabel, h)
 		r.prevSendCount, r.sendCount = r.sendCount, 0
 		r.ratchet = false
 	}
@@ -480,14 +468,9 @@ func (r *Ratchet) Decrypt(ciphertext []byte) ([]byte, error) {
 
 	var rootKeyHMAC hash.Hash
 
-	if r.v2 {
-		sha.Sum(keyMaterial[:0])
-		rootKeyHMAC = hmac.New(sha256.New, keyMaterial[:])
-		deriveKey(&rootKey, rootKeyLabel, rootKeyHMAC)
-	} else {
-		sha.Sum(rootKey[:0])
-		rootKeyHMAC = hmac.New(sha256.New, rootKey[:])
-	}
+	sha.Sum(keyMaterial[:0])
+	rootKeyHMAC = hmac.New(sha256.New, keyMaterial[:])
+	deriveKey(&rootKey, rootKeyLabel, rootKeyHMAC)
 	deriveKey(&chainKey, chainKeyLabel, rootKeyHMAC)
 
 	provisionalChainKey, messageKey, savedKeys, err := r.saveKeys(&r.nextRecvHeaderKey, &chainKey, messageNum, 0)
