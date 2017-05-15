@@ -271,7 +271,7 @@ func (z *ZKC) gcKick(args []string) error {
 	ngc.Members = make([][zkidentity.IdentitySize]byte, 0, len(gc.Members))
 	// warn if user is not in kicklist but do it anyway
 	found = false
-	for _,m := range(gc.Members) {
+	for _, m := range gc.Members {
 		if bytes.Equal(m[:], id.Identity[:]) == false {
 			ngc.Members = append(ngc.Members, m)
 		} else {
