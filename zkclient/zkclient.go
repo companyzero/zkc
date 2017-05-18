@@ -1318,6 +1318,10 @@ func (z *ZKC) welcomeUser(welcome *rpc.Welcome) error {
 		break
 	}
 
+	if len(z.conversation) == 1 {
+		restoreConversations(z)
+	}
+
 	return nil
 }
 
