@@ -15,18 +15,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-xdr/xdr2"
 	"github.com/companyzero/ttk"
 	"github.com/companyzero/zkc/inidb"
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkutil"
+	"github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
-
 )
 
 const (
-	consoleText = "console"
+	consoleText           = "console"
 	conversationsFilename = "conversations/conversations.ini"
 )
 
@@ -693,8 +692,8 @@ func (mw *mainWindow) action(cmd string) error {
 
 type savedConversation struct {
 	Id    *zkidentity.PublicIdentity
-	Nick   string
-	Group  bool
+	Nick  string
+	Group bool
 }
 
 func saveConversations(z *ZKC) error {
@@ -724,7 +723,7 @@ func saveConversations(z *ZKC) error {
 	if err != nil {
 		return err
 	}
-	for i,v := range z.conversation {
+	for i, v := range z.conversation {
 		var s savedConversation
 		var b bytes.Buffer
 		l := fmt.Sprintf("conversation%d", i)
