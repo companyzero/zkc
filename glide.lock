@@ -1,11 +1,11 @@
 hash: 5d0a7018b7275c53493a2cda398bd29693ea8097abd3d8e69d6f16889adfff23
-updated: 2016-11-23T14:07:27.887898489-05:00
+updated: 2017-05-24T18:23:34.497768636-05:00
 imports:
 - name: github.com/agl/ed25519
   version: 278e1ec8e8a6e017cd07577924d6766039146ced
   subpackages:
-  - edwards25519
   - extra25519
+  - edwards25519
 - name: github.com/companyzero/ttk
   version: 5a54a821dbc59e9256099ac26b7a703cdc00b0cd
 - name: github.com/davecgh/go-spew
@@ -33,10 +33,10 @@ imports:
   subpackages:
   - curve25519
   - nacl/secretbox
-  - pbkdf2
+  - scrypt
   - poly1305
   - salsa20/salsa
-  - scrypt
+  - pbkdf2
 testImports:
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
