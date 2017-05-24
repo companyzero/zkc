@@ -24,9 +24,9 @@ import (
 
 	"github.com/companyzero/zkc/debug"
 	"github.com/companyzero/zkc/rpc"
+	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/tagstack"
 	"github.com/companyzero/zkc/tools"
-	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkserver/account"
 	"github.com/companyzero/zkc/zkserver/settings"

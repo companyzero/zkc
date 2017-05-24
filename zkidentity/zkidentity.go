@@ -27,7 +27,7 @@ var (
 )
 
 const (
-	IdentitySize  = sha256.Size
+	IdentitySize = sha256.Size
 )
 
 // A zkc public identity consists of a name and nick (e.g "John Doe" and "jd"
@@ -36,19 +36,19 @@ const (
 // as the SHA256 of the NTRU public key, is used as a short handle to uniquely
 // identify a user in various zkc structures.
 type PublicIdentity struct {
-	Name		string
-	Nick		string
-	SigKey		[ed25519.PublicKeySize]byte
-	Key		[ntruprime.PublicKeySize]byte
-	Identity	[sha256.Size]byte
-	Digest		[sha256.Size]byte // digest of name, keys and identity
-	Signature	[ed25519.SignatureSize]byte // signature of Digest
+	Name      string
+	Nick      string
+	SigKey    [ed25519.PublicKeySize]byte
+	Key       [ntruprime.PublicKeySize]byte
+	Identity  [sha256.Size]byte
+	Digest    [sha256.Size]byte           // digest of name, keys and identity
+	Signature [ed25519.SignatureSize]byte // signature of Digest
 }
 
 type FullIdentity struct {
-	Public		PublicIdentity
-	PrivateSigKey	[ed25519.PrivateKeySize]byte
-	PrivateKey	[ntruprime.PrivateKeySize]byte
+	Public        PublicIdentity
+	PrivateSigKey [ed25519.PrivateKeySize]byte
+	PrivateKey    [ntruprime.PrivateKeySize]byte
 }
 
 func (fi *FullIdentity) Marshal() ([]byte, error) {
