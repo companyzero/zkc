@@ -42,11 +42,11 @@ const (
 
 // Ratchet contains the per-contact, crypto state.
 type Ratchet struct {
-	MyPrivateKey *[ntruprime.PrivateKeySize]byte
-	MySigningPublic *[32]byte
+	MyPrivateKey        *[ntruprime.PrivateKeySize]byte
+	MySigningPublic     *[32]byte
 	TheirIdentityPublic *[32]byte
-	TheirSigningPublic *[32]byte
-	TheirPublicKey *[ntruprime.PublicKeySize]byte
+	TheirSigningPublic  *[32]byte
+	TheirPublicKey      *[ntruprime.PublicKeySize]byte
 
 	// Now is an optional function that will be used to get the current
 	// time. If nil, time.Now is used.
@@ -69,7 +69,7 @@ type Ratchet struct {
 	// message key.
 	saved map[[32]byte]map[uint32]savedKey
 
-	MyHalf *[32]byte
+	MyHalf    *[32]byte
 	TheirHalf *[32]byte
 	kxPrivate *[32]byte
 

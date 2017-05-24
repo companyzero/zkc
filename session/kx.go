@@ -32,15 +32,15 @@ var (
 // Initiate (the client) while the other (the server) should call Init once
 // followed by Respond for each connection.
 type KX struct {
-	Conn		 net.Conn
-	MaxMessageSize	 uint
-	OurPrivateKey	*[ntruprime.PrivateKeySize]byte
-	OurPublicKey	*[ntruprime.PublicKeySize]byte
-	TheirPublicKey  *[ntruprime.PublicKeySize]byte
-	writeKey	*[32]byte
-	readKey		*[32]byte
-	writeSeq	 [24]byte
-	readSeq		 [24]byte
+	Conn           net.Conn
+	MaxMessageSize uint
+	OurPrivateKey  *[ntruprime.PrivateKeySize]byte
+	OurPublicKey   *[ntruprime.PublicKeySize]byte
+	TheirPublicKey *[ntruprime.PublicKeySize]byte
+	writeKey       *[32]byte
+	readKey        *[32]byte
+	writeSeq       [24]byte
+	readSeq        [24]byte
 }
 
 // The server keeps a pair of ephemeral keys to ensure key erasure (forward
@@ -77,7 +77,7 @@ func Init() {
 	ticker := time.NewTicker(60 * time.Second)
 	go func() {
 		for {
-			<- ticker.C
+			<-ticker.C
 			err := regenerateEphemeral()
 			if err != nil {
 				panic(err)
