@@ -268,19 +268,17 @@ func (z *ZKC) gcKick(args []string) error {
 	}
 	ngc.Generation++
 
+	ngc.Members = make([][zkidentity.IdentitySize]byte, 0, len(gc.Members))
 	// warn if user is not in kicklist but do it anyway
 	found = false
-	for i := 1; i < len(gc.Members); i++ {
-		if !bytes.Equal(gc.Members[i][:], id.Identity[:]) {
-			continue
+	for _, m := range gc.Members {
+		if bytes.Equal(m[:], id.Identity[:]) == false {
+			ngc.Members = append(ngc.Members, m)
+		} else {
+			found = true
 		}
-
-		// remove from member list
-		ngc.Members = append(gc.Members[:i:i], gc.Members[i+1:]...)
-		found = true
-		break
 	}
-	if !found {
+	if found == false {
 		z.PrintfT(-1, "WARNING: %v not part of %v, sending kick "+
 			"message anyway", args[3], args[2])
 	}
