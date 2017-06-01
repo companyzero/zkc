@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"errors"
-	"io"
 	"net"
 	"sync"
 	"time"
@@ -43,16 +42,16 @@ type KX struct {
 	readSeq        [24]byte
 }
 
-// The server keeps a pair of ephemeral keys to ensure key erasure (forward
-// secrecy) should the server's long-term keys be compromised.
+// A pair of ephemeral keys is kept to ensure key erasure (forward secrecy)
+// should long-term keys be compromised.
 var (
 	ephemeralPublic  [ntruprime.PublicKeySize]byte
 	ephemeralPrivate [ntruprime.PrivateKeySize]byte
 	ephemeralMutex   sync.Mutex
 )
 
-// regenerateEphemeral rotates the server's ephemeral key. It is invoked
-// concurrently to the handling of incoming connections, therefore we need to
+// regenerateEphemeral rotates the server/client's ephemeral key. It is invoked
+// concurrently to the operation of the server/client, therefore we need to
 // acquire a mutex to ensure noninterference.
 func regenerateEphemeral() error {
 	pk, sk, err := ntruprime.GenerateKey(rand.Reader)
@@ -64,6 +63,16 @@ func regenerateEphemeral() error {
 	copy(ephemeralPrivate[:], sk[:])
 	ephemeralMutex.Unlock()
 	return nil
+}
+
+// zeroEphemeral erases the contents of ephemeralP{ublic,rivate}.
+func zeroEphemeral() {
+	for i := range ephemeralPublic {
+		ephemeralPublic[i] ^= ephemeralPublic[i]
+	}
+	for i := range ephemeralPrivate {
+		ephemeralPrivate[i] ^= ephemeralPrivate[i]
+	}
 }
 
 // Init prepares the server to start responding to kx initiation requests.
@@ -104,90 +113,98 @@ func (kx *KX) TheirIdentity() interface{} {
 
 // deriveKeys returns two 32-byte keys determined exclusively by the contents
 // of its parameters.
-func (kx *KX) deriveKeys(k1, k2, k3 *[32]byte, r1, r2 *[64]byte) (a, b []byte) {
+func deriveKeys(parts ...*[32]byte) (*[32]byte, *[32]byte) {
 	d := sha512.New()
-	d.Write(k1[:])
-	d.Write(r1[:])
-	d.Write(k2[:])
-	d.Write(r2[:])
-	d.Write(k3[:])
+	for _, p := range parts {
+		d.Write(p[:])
+	}
 	k := d.Sum(nil)
-	return k[:32], k[32:64]
+	a := new([32]byte)
+	b := new([32]byte)
+	copy(a[:], k[:32])
+	copy(b[:], k[32:64])
+	return a, b
 }
 
-// genKeyAndSendCipher returns a shared key and sends the corresponding
-// ciphertext to the peer.
-func genKeyAndSendCipher(conn net.Conn, pk *[ntruprime.PublicKeySize]byte) (*[32]byte, error) {
+// genKeyAndSendCipher returns a NTRU Prime shared key and sends the
+// corresponding ciphertext to our peer. The transmission is encrypted
+// if ek is not nil.
+func genKeyAndSendCipher(kx *KX, pk *[ntruprime.PublicKeySize]byte, ek *[32]byte) (*[32]byte, error) {
 	c, k, err := ntruprime.Encapsulate(rand.Reader, pk)
 	if err != nil {
 		return nil, err
 	}
-	_, err = xdr.Marshal(conn, c)
+	if ek != nil {
+		err = kx.writeWithKey(c[:], ek)
+	} else {
+		_, err = xdr.Marshal(kx.Conn, c)
+	}
 	return k, err
 }
 
 // recvCipherAndGetKey returns a shared key obtained by decrypting a ciphertext
-// received from the peer using private key sk.
-func recvCipherAndGetKey(conn net.Conn, sk *[ntruprime.PrivateKeySize]byte) (*[32]byte, error) {
+// received from our peer using private key sk. The received payload is
+// decrypted using ek if it is not nil.
+func recvCipherAndGetKey(kx *KX, sk *[ntruprime.PrivateKeySize]byte, ek *[32]byte) (*[32]byte, error) {
 	c := new([ntruprime.CiphertextSize]byte)
-	_, err := xdr.Unmarshal(conn, c)
-	if err != nil {
-		return nil, err
+	if ek != nil {
+		x, err := kx.readWithKey(ek)
+		if err != nil {
+			return nil, err
+		}
+		if len(x) != len(c) {
+			return nil, ErrUnmarshal
+		}
+		copy(c[:], x)
+	} else {
+		_, err := xdr.Unmarshal(kx.Conn, c)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return ntruprime.Decapsulate(c, sk)
 }
 
-// genRandomAndSendMAC populates a 64-byte array with random values and sends
-// it to the peer along with the array's HMAC with mk as the hash-key. Both the
-// array and the HMAC are sent encrypted with ek. The 64-byte array
-// (unencrypted) is returned.
-func genRandomAndSendMAC(kx *KX, ek, mk *[32]byte) (*[64]byte, error) {
-	r := new([64]byte)
-	_, err := io.ReadFull(rand.Reader, r[:])
+// sendProof sends a HMAC proof to our peer. The data hashed is formed by the
+// concatenation of the parts array. The key used in the HMAC is given by mk.
+// The payload is sent encrypted with ek.
+func sendProof(kx *KX, mk, ek *[32]byte, parts ...[]byte) ([]byte, error) {
+	h := hmac.New(sha256.New, mk[:])
+	for _, p := range parts {
+		h.Write(p)
+	}
+	d := h.Sum(nil)
+	err := kx.writeWithKey(d, ek)
 	if err != nil {
 		return nil, err
 	}
-	err = kx.writeWithKey(r[:], ek)
-	if err != nil {
-		return nil, err
-	}
-	m := hmac.New(sha256.New, mk[:])
-	m.Write(r[:])
-	kx.writeWithKey(m.Sum(nil), ek)
-	return r, err
+	return d, err
 }
 
-// recvRandomAndCheckMAC receives a 64-byte array and a corresponding 32-byte
-// HMAC. It ensures that the received HMAC matches the array with mk as the
-// hash-key. Both the array and the HMAC are expected to be encrypted with ek.
-// The contents of the array are returned (decrypted).
-func recvRandomAndCheckMAC(kx *KX, ek, mk *[32]byte) (*[64]byte, error) {
-	r := new([64]byte)
-	payload, err := kx.readWithKey(ek)
+// recvProof receives and verifies a HMAC proof from our peer. The data hashed
+// is formed by the concatenation of the parts array. The key used in the HMAC
+// is given by mk. The received payload is decrypted with ek.
+func recvProof(kx *KX, mk, ek *[32]byte, parts ...[]byte) ([]byte, error) {
+	h := hmac.New(sha256.New, mk[:])
+	for _, p := range parts {
+		h.Write(p)
+	}
+	d := h.Sum(nil)
+	rd, err := kx.readWithKey(ek)
 	if err != nil {
 		return nil, err
 	}
-	if len(payload) != 64 {
+	if len(rd) != sha256.Size {
 		return nil, ErrUnmarshal
 	}
-	copy(r[:], payload)
-	payload, err = kx.readWithKey(ek)
-	if err != nil {
-		return nil, err
-	}
-	if len(payload) != sha256.Size {
+	if hmac.Equal(d, rd) == false {
 		return nil, ErrUnmarshal
 	}
-	m := hmac.New(sha256.New, mk[:])
-	m.Write(r[:])
-	if hmac.Equal(payload, m.Sum(nil)) == false {
-		return nil, ErrUnmarshal
-	}
-	return r, nil
+	return d, nil
 }
 
 // recvEncryptedIdentity receives an identity (a public key) encrypted with ek
-// from the peer. The decrypted identity is returned.
+// from our peer. The decrypted identity is returned.
 func recvEncryptedIdentity(kx *KX, ek *[32]byte) (*[ntruprime.PublicKeySize]byte, error) {
 	pk := new([ntruprime.PublicKeySize]byte)
 	payload, err := kx.readWithKey(ek)
@@ -203,24 +220,26 @@ func recvEncryptedIdentity(kx *KX, ek *[32]byte) (*[ntruprime.PublicKeySize]byte
 
 // Initiate performs a key exchange on behalf of a connecting client. A key
 // exchange involves the following variables:
-// k1, k2, k3: NTRU Prime shared keys.
-// c1, c2, c3: NTRU Prime ciphertexts corresponding to k1, k2, k3.
-// r1, r2: random 64-byte arrays.
+// k1, k2, k3, k4: NTRU Prime shared keys.
+// c1, c2, c3, c4: NTRU Prime ciphertexts corresponding to k1, k2, k3, k4.
 // From the perspective of the initiator, the process unfolds as follows:
 func (kx *KX) Initiate() error {
+	regenerateEphemeral()
+	defer zeroEphemeral()
+
 	// Step 1: Generate k1, send c1.
-	k1, err := genKeyAndSendCipher(kx.Conn, kx.TheirPublicKey)
+	k1, err := genKeyAndSendCipher(kx, kx.TheirPublicKey, nil)
 	if err != nil {
 		return err
 	}
-	// Step 2: Send our public key encrypted with k1.
-	err = kx.writeWithKey(kx.OurPublicKey[:], k1)
+	// Step 2: Send our ephemeral public key encrypted with k1.
+	err = kx.writeWithKey(ephemeralPublic[:], k1)
 	if err != nil {
 		return err
 	}
 
-	// Step 3: Receive c2, obtain k2.
-	k2, err := recvCipherAndGetKey(kx.Conn, kx.OurPrivateKey)
+	// Step 3: Receive c2 encrypted with k1, obtain k2.
+	k2, err := recvCipherAndGetKey(kx, &ephemeralPrivate, k1)
 	if err != nil {
 		return err
 	}
@@ -229,42 +248,51 @@ func (kx *KX) Initiate() error {
 	if err != nil {
 		return err
 	}
-
-	// Step 5: Generate k3, send c3.
-	k3, err := genKeyAndSendCipher(kx.Conn, theirEphemeralPub)
-	if err != nil {
-		return err
-	}
-	// Step 6: Send r1 and HMAC(r1, k2) encrypted with k1.
-	r1, err := genRandomAndSendMAC(kx, k1, k2)
+	// Step 5: Receive server's initial proof binding the ephemeral keys to k1.
+	sp, err := recvProof(kx, k1, k2, ephemeralPublic[:], theirEphemeralPub[:])
 	if err != nil {
 		return err
 	}
 
-	// Step 7: Receive r2 and HMAC(r2, k1) encrypted with k2.
-	r2, err := recvRandomAndCheckMAC(kx, k2, k1)
+	// Step 6: Generate k3, send c3 encrypted with k2.
+	k3, err := genKeyAndSendCipher(kx, theirEphemeralPub, k2)
+	if err != nil {
+		return err
+	}
+	// Step 7: Send our public key encrypted with k3.
+	err = kx.writeWithKey(kx.OurPublicKey[:], k3)
+	if err != nil {
+		return err
+	}
+	// Step 8: Send our proof to the server encrypted with k3.
+	cp, err := sendProof(kx, k2, k3, sp, kx.OurPublicKey[:])
 	if err != nil {
 		return err
 	}
 
-	// Step 8: Keys = SHA512(k1 + r1 + k2 + r2 + k3)
-	kx.readKey = new([32]byte)
-	kx.writeKey = new([32]byte)
-	a, b := kx.deriveKeys(k1, k2, k3, r1, r2)
-	copy(kx.readKey[:], a)
-	copy(kx.writeKey[:], b)
+	// Step 9: Receive c4 encrypted with k3, obtain k4.
+	k4, err := recvCipherAndGetKey(kx, kx.OurPrivateKey, k3)
+	if err != nil {
+		return err
+	}
+	// Step 10: Receive server's proof binding its public key to k3.
+	_, err = recvProof(kx, k3, k4, cp, kx.TheirPublicKey[:])
+	if err != nil {
+		return err
+	}
+
+	kx.readKey, kx.writeKey = deriveKeys(k1, k2, k3, k4)
 
 	return nil
 }
 
 // Respond performs a key exchange on behalf of a responding server. A key
 // exchange involves the following variables:
-// k1, k2, k3: NTRU Prime shared keys.
-// c1, c2, c3: NTRU Prime ciphertexts corresponding to k1, k2, k3.
-// r1, r2: random 64-byte arrays.
+// k1, k2, k3, k4: NTRU Prime shared keys.
+// c1, c2, c3, c4: NTRU Prime ciphertexts corresponding to k1, k2, k3, k4.
 // From the perspective of the responder, the process unfolds as follows:
 func (kx *KX) Respond() error {
-	// Step 1: Obtain a copy of our ephemeral keys.
+	// Step 0: Obtain a copy of our ephemeral keys.
 	epk := new([ntruprime.PublicKeySize]byte)
 	esk := new([ntruprime.PrivateKeySize]byte)
 	ephemeralMutex.Lock()
@@ -272,51 +300,61 @@ func (kx *KX) Respond() error {
 	copy(esk[:], ephemeralPrivate[:])
 	ephemeralMutex.Unlock()
 
-	// Step 2: Receive c1, obtain k1.
-	k1, err := recvCipherAndGetKey(kx.Conn, kx.OurPrivateKey)
+	// Step 1: Receive c1, obtain k1.
+	k1, err := recvCipherAndGetKey(kx, kx.OurPrivateKey, nil)
 	if err != nil {
 		return err
 	}
-	// Step 3: Receive the client's public key encrypted with k1.
-	kx.TheirPublicKey, err = recvEncryptedIdentity(kx, k1)
+	// Step 2: Receive the client's ephemeral public key encrypted with k1.
+	theirEphemeralPub, err := recvEncryptedIdentity(kx, k1)
 	if err != nil {
 		return err
 	}
 
-	// Step 4: Generate k2, send c2.
-	k2, err := genKeyAndSendCipher(kx.Conn, kx.TheirPublicKey)
+	// Step 3: Generate k2, send c2 encrypted with k1.
+	k2, err := genKeyAndSendCipher(kx, theirEphemeralPub, k1)
 	if err != nil {
 		return err
 	}
-	// Step 5: Send our ephemeral public key encrypted with k2.
+	// Step 4: Send our ephemeral public key encrypted with k2.
 	err = kx.writeWithKey(epk[:], k2)
 	if err != nil {
 		return err
 	}
-
-	// Step 6: Receive c3, obtain k3.
-	k3, err := recvCipherAndGetKey(kx.Conn, esk)
-	if err != nil {
-		return err
-	}
-	// Step 7: Receive r1 and HMAC(r1, k2) encrypted with k1.
-	r1, err := recvRandomAndCheckMAC(kx, k1, k2)
+	// Step 5: Send our initial proof.
+	sp, err := sendProof(kx, k1, k2, theirEphemeralPub[:], epk[:])
 	if err != nil {
 		return err
 	}
 
-	// Step 8: Send r2 and HMAC(r2, k1) encrypted k2.
-	r2, err := genRandomAndSendMAC(kx, k2, k1)
+	// Step 6: Receive c3 encrypted with k2, obtain k3.
+	k3, err := recvCipherAndGetKey(kx, esk, k2)
+	if err != nil {
+		return err
+	}
+	// Step 7: Receive the client's public key encrypted with k3.
+	kx.TheirPublicKey, err = recvEncryptedIdentity(kx, k3)
+	if err != nil {
+		return err
+	}
+	// Step 8: Receive and verify the client proof encrypted with k3.
+	cp, err := recvProof(kx, k2, k3, sp, kx.TheirPublicKey[:])
 	if err != nil {
 		return err
 	}
 
-	// Step 9: Keys = SHA512(k1 + r1 + k2 + r2 + k3)
-	kx.readKey = new([32]byte)
-	kx.writeKey = new([32]byte)
-	a, b := kx.deriveKeys(k1, k2, k3, r1, r2)
-	copy(kx.readKey[:], b)
-	copy(kx.writeKey[:], a)
+	// Step 9: Generate k4, send c4 encrypted with k3.
+	k4, err := genKeyAndSendCipher(kx, kx.TheirPublicKey, k3)
+	if err != nil {
+		return err
+	}
+	// Step 10: Send a proof binding our public key to k3.
+	_, err = sendProof(kx, k3, k4, cp, kx.OurPublicKey[:])
+	if err != nil {
+		return err
+	}
+
+	kx.writeKey, kx.readKey = deriveKeys(k1, k2, k3, k4)
 
 	return nil
 }
