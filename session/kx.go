@@ -96,6 +96,7 @@ func Init() {
 }
 
 type Printable func(int, string, ...interface{})
+
 var diagnosticFunction Printable
 
 func SetDiagnostic(f Printable) {
