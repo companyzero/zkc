@@ -33,7 +33,7 @@ func log(id int, format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, t+" "+format+"\n", args...)
 }
 
-func loadIdentities(t *testing.T) {
+func loadIdentities(t *testing.T) (alice, bob *zkidentity.FullIdentity) {
 	f, err := os.Open("testdata/alice.blob")
 	if err != nil {
 		panic(err)
@@ -61,9 +61,22 @@ func loadIdentities(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	return alice, bob
 }
 
-func TestKX(t *testing.T) {
+func newIdentities(t *testing.T) (alice, bob *zkidentity.FullIdentity) {
+	alice, err := zkidentity.New("Alice The Malice", "alice")
+	if err != nil {
+		panic(err)
+	}
+	bob, err = zkidentity.New("Bob The Builder", "bob")
+	if err != nil {
+		panic(err)
+	}
+	return alice, bob
+}
+
+func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 	loadIdentities(t)
 	SetDiagnostic(log)
 
@@ -158,4 +171,14 @@ func TestKX(t *testing.T) {
 
 	wg.Done()
 	wg.Wait()
+}
+
+func TestStaticIdentities(t *testing.T) {
+	alice, bob := loadIdentities(t)
+	testKX(t, alice, bob)
+}
+
+func TestRandomIdentities(t *testing.T) {
+	alice, bob := newIdentities(t)
+	testKX(t, alice, bob)
 }
