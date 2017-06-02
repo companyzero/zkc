@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	alice    *zkidentity.FullIdentity
-	bob      *zkidentity.FullIdentity
+	alice   *zkidentity.FullIdentity
+	bob     *zkidentity.FullIdentity
 	aliceKX *KX
 	bobKX   *KX
 )
@@ -88,7 +88,7 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 	aliceKX.TheirPublicKey = &bob.Public.Key
 	t.Logf("alice fingerprint: %v", alice.Public.Fingerprint())
 
-	bobKX :=  new(KX)
+	bobKX := new(KX)
 	bobKX.MaxMessageSize = 4096
 	bobKX.OurPublicKey = &bob.Public.Key
 	bobKX.OurPrivateKey = &bob.PrivateKey
