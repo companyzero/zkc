@@ -95,6 +95,19 @@ func Init() {
 	}()
 }
 
+type Printable func(int, string, ...interface{})
+var diagnosticFunction Printable
+
+func SetDiagnostic(f Printable) {
+	diagnosticFunction = f
+}
+
+func D(id int, fmt string, args ...interface{}) {
+	if diagnosticFunction != nil {
+		diagnosticFunction(id, fmt, args)
+	}
+}
+
 func (kx *KX) SetWriteDeadline(t time.Time) {
 	kx.Conn.SetWriteDeadline(t)
 }
@@ -197,6 +210,8 @@ func recvProof(kx *KX, mk, ek *[32]byte, parts ...[]byte) ([]byte, error) {
 	if len(rd) != sha256.Size {
 		return nil, ErrUnmarshal
 	}
+	D(0, "[session.recvProof] expected proof: %x", d)
+	D(0, "[session.recvProof] received proof: %x", rd)
 	if hmac.Equal(d, rd) == false {
 		return nil, ErrUnmarshal
 	}
@@ -226,6 +241,11 @@ func recvEncryptedIdentity(kx *KX, ek *[32]byte) (*[ntruprime.PublicKeySize]byte
 func (kx *KX) Initiate() error {
 	regenerateEphemeral()
 	defer zeroEphemeral()
+
+	D(0, "[session.Initiate] ephemeral public:\n%x", ephemeralPublic)
+	D(0, "[session.Initiate] ephemeral private:\n%x", ephemeralPrivate)
+	D(0, "[session.Initiate] our public key:\n%x", *kx.OurPublicKey)
+	D(0, "[session.Initiate] their public key:\n%x", *kx.TheirPublicKey)
 
 	// Step 1: Generate k1, send c1.
 	k1, err := genKeyAndSendCipher(kx, kx.TheirPublicKey, nil)
@@ -283,6 +303,9 @@ func (kx *KX) Initiate() error {
 
 	kx.readKey, kx.writeKey = deriveKeys(k1, k2, k3, k4)
 
+	D(0, "[session.Initiate] readKey: %x", *kx.readKey)
+	D(0, "[session.Initiate] writeKey: %x", *kx.writeKey)
+
 	return nil
 }
 
@@ -299,6 +322,10 @@ func (kx *KX) Respond() error {
 	copy(epk[:], ephemeralPublic[:])
 	copy(esk[:], ephemeralPrivate[:])
 	ephemeralMutex.Unlock()
+
+	D(0, "[session.Respond] ephemeral public:\n%x", *epk)
+	D(0, "[session.Respond] ephemeral private:\n%x", *esk)
+	D(0, "[session.Respond] our public key:\n%x", *kx.OurPublicKey)
 
 	// Step 1: Receive c1, obtain k1.
 	k1, err := recvCipherAndGetKey(kx, kx.OurPrivateKey, nil)
@@ -355,6 +382,10 @@ func (kx *KX) Respond() error {
 	}
 
 	kx.writeKey, kx.readKey = deriveKeys(k1, k2, k3, k4)
+
+	D(0, "[session.Respond] their public key:\n%x", *kx.TheirPublicKey)
+	D(0, "[session.Respond] readKey: %x", *kx.readKey)
+	D(0, "[session.Respond] writeKey: %x", *kx.writeKey)
 
 	return nil
 }
