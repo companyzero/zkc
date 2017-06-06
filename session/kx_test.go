@@ -6,11 +6,13 @@ package session
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net"
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/companyzero/zkc/zkidentity"
 )
@@ -21,6 +23,15 @@ var (
 	aliceKX *KX
 	bobKX   *KX
 )
+
+var mtx sync.Mutex
+
+func log(id int, format string, args ...interface{}) {
+	mtx.Lock()
+	defer mtx.Unlock()
+	t := time.Now().Format(time.UnixDate)
+	fmt.Fprintf(os.Stderr, t+" "+format+"\n", args...)
+}
 
 func loadIdentities(t *testing.T) {
 	f, err := os.Open("testdata/alice.blob")
@@ -54,6 +65,7 @@ func loadIdentities(t *testing.T) {
 
 func TestKX(t *testing.T) {
 	loadIdentities(t)
+	SetDiagnostic(log)
 
 	Init()
 	aliceKX := new(KX)
