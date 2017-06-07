@@ -1,5 +1,5 @@
 hash: 5d0a7018b7275c53493a2cda398bd29693ea8097abd3d8e69d6f16889adfff23
-updated: 2017-06-06T08:32:26.30552312-04:00
+updated: 2017-06-07T08:37:00.753633568-04:00
 imports:
 - name: github.com/agl/ed25519
   version: 278e1ec8e8a6e017cd07577924d6766039146ced
@@ -7,7 +7,7 @@ imports:
   - extra25519
   - edwards25519
 - name: github.com/companyzero/ttk
-  version: a6385b666d6aeb79642d96d4e4247b59b6e46037
+  version: 441d2d3f3bd88ba2931cab10f76376a5589de6a6
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
