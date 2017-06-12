@@ -498,24 +498,6 @@ func (z *ZKS) preSession(conn net.Conn) {
 		}
 
 		switch mode {
-		case rpc.InitialCmdIdentify:
-			z.T(idApp, "InitialCmdIdentify: %v", conn.RemoteAddr())
-			if !z.settings.AllowIdentify {
-				z.Warn(idApp, "disallowing identify to: %v",
-					conn.RemoteAddr())
-				return
-			}
-			_, err = xdr.Marshal(conn, z.id.Public)
-			if err != nil {
-				z.Error(idApp, "could not marshal "+
-					"z.id.Public: %v",
-					conn.RemoteAddr())
-				return
-			}
-
-			z.Dbg(idApp, "identifying self to: %v",
-				conn.RemoteAddr())
-
 		case rpc.InitialCmdCreateAccount:
 			z.T(idApp, "InitialCmdCreateAccount: %v", conn.RemoteAddr())
 			var ca rpc.CreateAccount
