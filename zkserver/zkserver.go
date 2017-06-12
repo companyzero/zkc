@@ -475,6 +475,18 @@ func (z *ZKS) preSession(conn net.Conn) {
 		z.Info(idApp, "connection closed: %v", conn.RemoteAddr())
 	}()
 
+	kx := new(session.KX)
+	kx.Conn = conn
+	kx.MaxMessageSize = uint(z.settings.MaxMsgSize)
+	kx.OurPublicKey = &z.id.Public.Key
+	kx.OurPrivateKey = &z.id.PrivateKey
+	err := kx.Respond()
+	if err != nil {
+		conn.Close()
+		z.Error(idApp, "kx.Respond: %v %v", conn.RemoteAddr(), err)
+		return
+	}
+
 	// pre session state
 	var mode string
 	for {
@@ -528,19 +540,6 @@ func (z *ZKS) preSession(conn net.Conn) {
 		case rpc.InitialCmdSession:
 			z.T(idApp, "InitialCmdSession: %v", conn.RemoteAddr())
 			// go full session
-			kx := new(session.KX)
-			kx.Conn = conn
-			kx.MaxMessageSize = uint(z.settings.MaxMsgSize)
-			kx.OurPublicKey = &z.id.Public.Key
-			kx.OurPrivateKey = &z.id.PrivateKey
-			err = kx.Respond()
-			if err != nil {
-				conn.Close()
-				z.Error(idApp, "kx.Respond: %v %v",
-					conn.RemoteAddr(),
-					err)
-				return
-			}
 			remoteID, ok := kx.TheirIdentity().([32]byte)
 			if !ok {
 				z.Error(idApp, "invalid KX identity type %T: %v",
