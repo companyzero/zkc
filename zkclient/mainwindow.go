@@ -685,6 +685,12 @@ func (mw *mainWindow) action(cmd string) error {
 			mw.zkc.PrintfT(-1, "save failed: %v", err)
 		}
 		return nil
+
+	case cmdFind:
+		if len(args) != 2 {
+			return mw.doUsage(args)
+		}
+		return mw.zkc.find(args[1])
 	}
 
 	return fmt.Errorf("invalid command: %v", cmd)

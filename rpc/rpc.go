@@ -57,6 +57,8 @@ const (
 	TaggedCmdAcknowledge         = "ack"
 	TaggedCmdPing                = "ping"
 	TaggedCmdPong                = "pong"
+	TaggedCmdIdentityFind        = "identityfind"
+	TaggedCmdIdentityFindReply   = "identityfindreply"
 
 	// misc
 	MessageModeNormal = 0
@@ -146,6 +148,10 @@ const (
 	// stamp.  The client shall warn the user if the client is not time
 	// synced.  Clients and proxies really shall run NTP.
 	PropServerTime = "servertime"
+
+	// Directory is a required property. It defines whether the server
+	// keeps a directory of identities.
+	PropDirectory = "directory"
 )
 
 var (
@@ -259,6 +265,15 @@ type RendezvousPullReply struct {
 	Error string // set if an error occurred
 	Token string // Rendezvous token that identifies blob
 	Blob  []byte // data reply to previous Rendezvous
+}
+
+type IdentityFind struct {
+	Nick string
+}
+
+type IdentityFindReply struct {
+	Error    string
+	Identity zkidentity.PublicIdentity
 }
 
 // IdentityKX contains the long lived public identify and the DH ratchet keys.
