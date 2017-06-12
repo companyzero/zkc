@@ -1554,6 +1554,12 @@ func (z *ZKC) finalizeAccountCreation(conn net.Conn, cs *tls.ConnectionState,
 		return fmt.Errorf("Connection closed during create account")
 	}
 
+	// set fields
+	err = z.id.RecalculateDigest()
+	if err != nil {
+		return fmt.Errorf("Could not recalculate digest: %v", err)
+	}
+
 	// send create account rpc
 	ca := rpc.CreateAccount{
 		PublicIdentity: z.id.Public,
@@ -1578,12 +1584,6 @@ func (z *ZKC) finalizeAccountCreation(conn net.Conn, cs *tls.ConnectionState,
 	// save of server identity
 	z.serverIdentity = pid
 	z.cert = cs.PeerCertificates[0].Raw
-
-	// set fields
-	err = z.id.RecalculateDigest()
-	if err != nil {
-		return fmt.Errorf("Could not recalculate digest: %v", err)
-	}
 
 	// tell remote we want to go full session
 	kx, err := z.sessionPhase(conn)

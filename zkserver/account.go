@@ -33,6 +33,10 @@ func (z *ZKS) accountReplyFailure(msg string, conn net.Conn,
 }
 
 func (z *ZKS) handleAccountCreate(kx *session.KX, ca rpc.CreateAccount) error {
+	if ca.PublicIdentity.Verify() == false {
+		return fmt.Errorf("failed to verify identity")
+	}
+
 	conn := kx.Conn
 	z.T(idApp, "handleAccountCreate: %v %v",
 		conn.RemoteAddr(),
