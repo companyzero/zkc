@@ -5,10 +5,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 
 	"github.com/companyzero/zkc/rpc"
+	"github.com/companyzero/zkc/session"
 	"github.com/davecgh/go-xdr/xdr2"
 )
 
@@ -30,7 +32,8 @@ func (z *ZKS) accountReplyFailure(msg string, conn net.Conn,
 	}
 }
 
-func (z *ZKS) handleAccountCreate(conn net.Conn, ca rpc.CreateAccount) error {
+func (z *ZKS) handleAccountCreate(kx *session.KX, ca rpc.CreateAccount) error {
+	conn := kx.Conn
 	z.T(idApp, "handleAccountCreate: %v %v",
 		conn.RemoteAddr(),
 		ca.PublicIdentity.Fingerprint())
@@ -68,9 +71,14 @@ func (z *ZKS) handleAccountCreate(conn net.Conn, ca rpc.CreateAccount) error {
 	if err != nil {
 		car.Error = rpc.ErrInternalError.Error()
 	}
-	_, err = xdr.Marshal(conn, car)
+	var bb bytes.Buffer
+	_, err = xdr.Marshal(&bb, car)
 	if err != nil {
 		return fmt.Errorf("could not marshal CreateAccountReply")
+	}
+	err = kx.Write(bb.Bytes())
+	if err != nil {
+		return fmt.Errorf("could not write CreateAccountReply")
 	}
 
 	return nil

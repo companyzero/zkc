@@ -488,9 +488,17 @@ func (z *ZKS) preSession(conn net.Conn) {
 	}
 
 	// pre session state
-	var mode string
 	for {
-		_, err := xdr.Unmarshal(conn, &mode)
+		var mode string
+
+		msg, err := kx.Read()
+		if err != nil {
+			z.Dbg(idApp, "could not read mode: %v",
+				conn.RemoteAddr())
+			return
+		}
+		br := bytes.NewReader(msg)
+		_, err = xdr.Unmarshal(br, &mode)
 		if err != nil {
 			z.Dbg(idApp, "could not unmarshal mode: %v",
 				conn.RemoteAddr())
@@ -501,15 +509,25 @@ func (z *ZKS) preSession(conn net.Conn) {
 		case rpc.InitialCmdCreateAccount:
 			z.T(idApp, "InitialCmdCreateAccount: %v", conn.RemoteAddr())
 			var ca rpc.CreateAccount
-			_, err := xdr.Unmarshal(conn, &ca)
+			msg, err := kx.Read()
+			if err != nil {
+				z.Error(idApp, "could not read "+
+					"CreateAccount: %v %v",
+					conn.RemoteAddr(),
+					err)
+				return
+			}
+			br := bytes.NewReader(msg)
+			_, err = xdr.Unmarshal(br, &ca)
 			if err != nil {
 				z.Error(idApp, "could not unmarshal "+
-					"CreateAccount: %v",
-					conn.RemoteAddr())
+					"CreateAccount: %v %v",
+					conn.RemoteAddr(),
+					err)
 				return
 			}
 
-			err = z.handleAccountCreate(conn, ca)
+			err = z.handleAccountCreate(kx, ca)
 			if err != nil {
 				z.Error(idApp, "handleAccountCreate: %v %v",
 					conn.RemoteAddr(),
