@@ -36,6 +36,9 @@ func (z *ZKS) handleAccountCreate(kx *session.KX, ca rpc.CreateAccount) error {
 	if ca.PublicIdentity.Verify() == false {
 		return fmt.Errorf("failed to verify identity")
 	}
+	if ca.PublicIdentity.Identity != kx.TheirIdentity() {
+		return fmt.Errorf("identity mismatch")
+	}
 
 	conn := kx.Conn
 	z.T(idApp, "handleAccountCreate: %v %v",
