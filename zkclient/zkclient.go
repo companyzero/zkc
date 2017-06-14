@@ -951,6 +951,11 @@ func (z *ZKC) goOnlineRetry() {
 	}
 }
 
+func (z *ZKC) PrintIdentity(id zkidentity.PublicIdentity) {
+	z.PrintfT(0, "found %s (%s), fingerprint %s", id.Nick, id.Name,
+		base64.StdEncoding.EncodeToString(id.Identity[:]))
+}
+
 // handleRPC deals with all incoming RPC commands.  It shall be called as a go
 // routine.
 func (z *ZKC) handleRPC() {
@@ -1215,6 +1220,66 @@ func (z *ZKC) handleRPC() {
 				go f()
 			}
 
+		case rpc.TaggedCmdIdentityPushReply:
+			var r rpc.IdentityPushReply
+			_, err = xdr.Unmarshal(br, &r)
+			if err != nil {
+				exitError = fmt.Errorf("unmarshal " +
+					"IdentityPushReply")
+				return
+			}
+			if r.Error != "" {
+				z.PrintfT(0, "push failed: %v", r.Error)
+			} else {
+				z.PrintfT(0, "identity pushed")
+			}
+			err = z.tagStack.Push(message.Tag)
+			if err != nil {
+				exitError = fmt.Errorf("IdentityPushReply "+
+					"invalid tag: %v", message.Tag)
+				return
+			}
+
+		case rpc.TaggedCmdIdentityPullReply:
+			var r rpc.IdentityPullReply
+			_, err = xdr.Unmarshal(br, &r)
+			if err != nil {
+				exitError = fmt.Errorf("unmarshal " +
+					"IdentityPullReply")
+				return
+			}
+			if r.Error != "" {
+				z.PrintfT(0, "pull failed: %v", r.Error)
+			} else {
+				z.PrintfT(0, "identity pulled")
+			}
+			err = z.tagStack.Push(message.Tag)
+			if err != nil {
+				exitError = fmt.Errorf("IdentityPullReply "+
+					"invalid tag: %v", message.Tag)
+				return
+			}
+
+		case rpc.TaggedCmdIdentityFindReply:
+			var r rpc.IdentityFindReply
+			_, err = xdr.Unmarshal(br, &r)
+			if err != nil {
+				exitError = fmt.Errorf("unmarshal " +
+					"IdentityFindReply")
+				return
+			}
+			if r.Error != "" {
+				z.PrintfT(0, "find failed: %v", r.Error)
+			} else {
+				z.PrintIdentity(r.Identity)
+			}
+			err = z.tagStack.Push(message.Tag)
+			if err != nil {
+				exitError = fmt.Errorf("IdentityFindReply "+
+					"invalid tag: %v", message.Tag)
+				return
+			}
+
 		default:
 			exitError = fmt.Errorf("unhandled message %v tag %v",
 				message.Command, message.Tag)
@@ -1383,6 +1448,64 @@ func (z *ZKC) fetch(pin string) error {
 			Token: pin,
 		})
 
+	return nil
+}
+
+func (z *ZKC) push() error {
+	if !z.isOnline() {
+		return fmt.Errorf("not online")
+	}
+
+	tag, err := z.tagStack.Pop()
+	if err != nil {
+		return fmt.Errorf("could not obtain tag: %v", err)
+	}
+	z.schedulePRPC(true,
+		rpc.Message{
+			Command: rpc.TaggedCmdIdentityPush,
+			Tag:     tag,
+		},
+		rpc.Empty{})
+
+	return nil
+}
+
+func (z *ZKC) pull() error {
+	if !z.isOnline() {
+		return fmt.Errorf("not online")
+	}
+
+	tag, err := z.tagStack.Pop()
+	if err != nil {
+		return fmt.Errorf("could not obtain tag: %v", err)
+	}
+	z.schedulePRPC(true,
+		rpc.Message{
+			Command: rpc.TaggedCmdIdentityPull,
+			Tag:     tag,
+		},
+		rpc.Empty{})
+
+	return nil
+}
+
+func (z *ZKC) find(nick string) error {
+	if !z.isOnline() {
+		return fmt.Errorf("not online")
+	}
+
+	tag, err := z.tagStack.Pop()
+	if err != nil {
+		return fmt.Errorf("could not obtain tag: %v", err)
+	}
+	z.schedulePRPC(true,
+		rpc.Message{
+			Command: rpc.TaggedCmdIdentityFind,
+			Tag:     tag,
+		},
+		rpc.IdentityFind{
+			Nick: nick,
+		})
 	return nil
 }
 
