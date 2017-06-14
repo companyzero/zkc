@@ -458,6 +458,29 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 				rids,
 				message.Tag)
 
+		case rpc.TaggedCmdIdentityPush:
+			err = z.handleIdentityPush(sc.writer, message, rid)
+			if err != nil {
+				return fmt.Errorf("handleIdentityPush: %v", err)
+			}
+
+		case rpc.TaggedCmdIdentityFind:
+			var i rpc.IdentityFind
+			_, err = xdr.Unmarshal(br, &i)
+			if err != nil {
+				return fmt.Errorf("unmarshal IdentityFind failed")
+			}
+			err = z.handleIdentityFind(sc.writer, message, i.Nick)
+			if err != nil {
+				return fmt.Errorf("handleIdentityFind: %v", err)
+			}
+
+		case rpc.TaggedCmdIdentityPull:
+			err = z.handleIdentityPull(sc.writer, message, rid)
+			if err != nil {
+				return fmt.Errorf("handleIdentityPull: %v", err)
+			}
+
 		default:
 			return fmt.Errorf("invalid message: %v", message)
 

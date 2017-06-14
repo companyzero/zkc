@@ -57,6 +57,12 @@ const (
 	TaggedCmdAcknowledge         = "ack"
 	TaggedCmdPing                = "ping"
 	TaggedCmdPong                = "pong"
+	TaggedCmdIdentityPush        = "identitypush"
+	TaggedCmdIdentityPushReply   = "identitypushreply"
+	TaggedCmdIdentityFind        = "identityfind"
+	TaggedCmdIdentityFindReply   = "identityfindreply"
+	TaggedCmdIdentityPull        = "identitypull"
+	TaggedCmdIdentityPullReply   = "identitypullreply"
 
 	// misc
 	MessageModeNormal = 0
@@ -259,6 +265,23 @@ type RendezvousPullReply struct {
 	Error string // set if an error occurred
 	Token string // Rendezvous token that identifies blob
 	Blob  []byte // data reply to previous Rendezvous
+}
+
+type IdentityPushReply struct {
+	Error string
+}
+
+type IdentityPullReply struct {
+	Error string
+}
+
+type IdentityFind struct {
+	Nick string
+}
+
+type IdentityFindReply struct {
+	Error string
+	Identity zkidentity.PublicIdentity
 }
 
 // IdentityKX contains the long lived public identify and the DH ratchet keys.
