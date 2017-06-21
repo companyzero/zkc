@@ -101,7 +101,9 @@ func importClientRecord(root string, force bool, cr tools.ClientRecord) error {
 	i := hex.EncodeToString(cr.PublicIdentity.Identity[:])
 	user := path.Join(dir, tools.ZKSHome, i)
 	_, err = os.Stat(user)
-
+	if err != nil {
+		return err
+	}
 	a, err := account.New(home)
 	if err != nil {
 		return err

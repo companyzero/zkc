@@ -50,7 +50,6 @@ func (z *ZKC) calculateStatus() string {
 		if v.dirty {
 			if comma {
 				active += ","
-				comma = false
 			}
 			color := STATUSWHITEBOLD
 			if v.mentioned {

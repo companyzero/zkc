@@ -946,7 +946,7 @@ func (z *ZKC) warnGroupListMissingKeys(print bool, gl rpc.GroupList) error {
 		if bytes.Equal(v[:], z.id.Public.Identity[:]) {
 			continue
 		}
-		_, err := z.ab.FindIdentity(v)
+		_, err = z.ab.FindIdentity(v)
 		if err == nil {
 			continue
 		}

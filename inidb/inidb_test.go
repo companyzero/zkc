@@ -122,7 +122,7 @@ func TestGet(t *testing.T) {
 	}
 
 	// not found
-	value, err = i.Get("other", "oink1")
+	_, err = i.Get("other", "oink1")
 	if err != ErrNotFound {
 		t.Fatalf("record should not have been found")
 	}

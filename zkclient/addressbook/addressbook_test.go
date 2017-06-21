@@ -47,13 +47,13 @@ func TestDuplicate(t *testing.T) {
 		t.Fatalf("New alice: %v", err)
 	}
 	ab := New()
-	nick1, err := ab.Add(alice.Public)
+	_, err = ab.Add(alice.Public)
 	if err != nil {
 		t.Fatalf("could not add alice")
 	}
 
 	// same alice
-	nick1, err = ab.Add(alice.Public)
+	nick1, err := ab.Add(alice.Public)
 	if err != nil {
 		t.Fatalf("could not add same alice: %v", err)
 	}

@@ -11,11 +11,12 @@ install:
 script:
   - export PATH=$PATH:$HOME/gopath/bin
   - export GORACE="halt_on_error=1"
-  - test -z "$(gometalinter --disable-all
+  - test -z "$(gometalinter --vendor --disable-all
       --enable=gofmt
       --enable=vet
       --enable=unconvert
-      --deadline=20m $(glide novendor) | tee /dev/stderr)"
+      --enable=ineffassign
+      --deadline=20m ./... | tee /dev/stderr)"
   - go test -v -race $(glide novendor)
 #after_success:
 #    - go get -v github.com/mattn/goveralls

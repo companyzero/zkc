@@ -163,7 +163,6 @@ func (z *ZKC) doHandleChunk(msg rpc.Message, p rpc.Push,
 		for {
 			fullpath = path.Join(z.settings.Root, spoolDir,
 				filename)
-			err = nil
 			_, err = os.Stat(fullpath)
 			if err != nil {
 				break
