@@ -909,7 +909,7 @@ func (z *ZKC) goOnlineAndPrint() error {
 	case err != nil:
 		z.PrintfT(0, "Could not connect to server: %v", err)
 	default:
-		z.welcomeUser(welcome)
+		err = z.welcomeUser(welcome)
 	}
 
 	return err
@@ -1605,7 +1605,10 @@ func (z *ZKC) finalizeAccountCreation(conn net.Conn, cs *tls.ConnectionState,
 	go z.handleRPC()
 
 	z.mw.welcomeMessage()
-	z.welcomeUser(welcome)
+	err = z.welcomeUser(welcome)
+	if err != nil {
+		return err
+	}
 	ttk.Focus(z.ttkMW)
 	z.focus(0)
 
