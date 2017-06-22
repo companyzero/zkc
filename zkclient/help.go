@@ -37,6 +37,8 @@ var (
 	cmdReset         = leader + "reset"
 	cmdAddressBook   = leader + "addressbook"
 	cmdAB            = leader + "ab" // alias for addressbook
+	cmdSave          = leader + "save"
+	cmdRestore       = leader + "restore"
 
 	helpArray = []help{
 		{
@@ -206,6 +208,16 @@ var (
 			command:     cmdAB,
 			usage:       cmdAB + " <del> <nick>",
 			description: "alias for " + cmdAddressBook,
+		},
+		{
+			command:     cmdSave,
+			usage:       cmdSave,
+			description: "Save open conversations to disk",
+		},
+		{
+			command:     cmdRestore,
+			usage:       cmdRestore,
+			description: "Restore conversations from disk",
 		},
 	}
 )

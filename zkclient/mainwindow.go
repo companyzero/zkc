@@ -6,6 +6,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -14,13 +16,17 @@ import (
 	"strings"
 
 	"github.com/companyzero/ttk"
+	"github.com/companyzero/zkc/inidb"
 	"github.com/companyzero/zkc/rpc"
+	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkutil"
+	"github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
 const (
-	consoleText = "console"
+	consoleText           = "console"
+	conversationsFilename = "conversations/conversations.ini"
 )
 
 var (
@@ -613,6 +619,10 @@ func (mw *mainWindow) action(cmd string) error {
 
 		return nil
 
+	case cmdRestore:
+		restoreConversations(mw.zkc)
+		return nil
+
 	case cmdQ, cmdQuery:
 		if len(args) != 2 {
 			return mw.doUsage(args)
@@ -668,7 +678,136 @@ func (mw *mainWindow) action(cmd string) error {
 				args[1])
 		}
 		return mw.zkc.addressBookDel(args[2])
+
+	case cmdSave:
+		err := saveConversations(mw.zkc)
+		if err != nil {
+			mw.zkc.PrintfT(-1, "save failed: %v", err)
+		}
+		return nil
 	}
 
 	return fmt.Errorf("invalid command: %v", cmd)
+}
+
+type savedConversation struct {
+	Id    *zkidentity.PublicIdentity
+	Nick  string
+	Group bool
+}
+
+func saveConversations(z *ZKC) error {
+	os.Remove(path.Join(z.settings.Root, conversationsFilename))
+	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsFilename), true, 10)
+	if err != inidb.ErrCreated {
+		if err != nil {
+			return err
+		} else {
+			return fmt.Errorf("could not create conversations.ini")
+		}
+	}
+	err = cdb.Lock()
+	if err != nil {
+		return err
+	}
+	defer cdb.Unlock()
+	cdb.NewTable("conversations")
+	var b bytes.Buffer
+	var n int
+	n = len(z.conversation)
+	_, err = xdr.Marshal(&b, n)
+	if err != nil {
+		return err
+	}
+	err = cdb.Set("conversations", "n", base64.StdEncoding.EncodeToString(b.Bytes()))
+	if err != nil {
+		return err
+	}
+	for i, v := range z.conversation {
+		var s savedConversation
+		var b bytes.Buffer
+		l := fmt.Sprintf("conversation%d", i)
+		s.Id = v.id
+		s.Nick = v.nick
+		s.Group = v.group
+		_, err = xdr.Marshal(&b, s)
+		if err != nil {
+			return err
+		}
+		err = cdb.Set("conversations", l, base64.StdEncoding.EncodeToString(b.Bytes()))
+		if err != nil {
+			return err
+		}
+	}
+	err = cdb.Save()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func closeAll(z *ZKC) {
+	z.Lock()
+	defer z.Unlock()
+	console := z.conversation[0]
+	z.conversation = make([]*conversation, 1)
+	z.conversation[0] = console
+	z.focus(0)
+}
+
+func unmarshalConversation(b64 string) (*savedConversation, error) {
+	blob, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode base64 conversation")
+	}
+	b := bytes.NewReader(blob)
+	var c savedConversation
+	_, err = xdr.Unmarshal(b, &c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func restoreConversations(z *ZKC) error {
+	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsFilename), false, 10)
+	if err != nil {
+		return err
+	}
+	err = cdb.Lock()
+	if err != nil {
+		return err
+	}
+	defer cdb.Unlock()
+	b64, err := cdb.Get("conversations", "n")
+	if err != nil {
+		return err
+	}
+	blob, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return err
+	}
+	b := bytes.NewReader(blob)
+	var n int
+	_, err = xdr.Unmarshal(b, &n)
+	if err != nil {
+		return err
+	}
+	closeAll(z)
+	for i := 1; i < n; i++ {
+		l := fmt.Sprintf("conversation%d", i)
+		b64, err := cdb.Get("conversations", l)
+		if err != nil {
+			closeAll(z)
+			return err
+		}
+		c, err := unmarshalConversation(b64)
+		if err != nil {
+			closeAll(z)
+			return err
+		}
+		z.query(c.Nick)
+	}
+	z.focus(0)
+	return nil
 }
