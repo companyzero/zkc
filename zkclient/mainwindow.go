@@ -613,6 +613,7 @@ func (mw *mainWindow) action(cmd string) error {
 
 		// delete conversation from list
 		i := mw.zkc.active
+		mw.zkc.conversation[i].console.Visibility(ttk.VisibilityHide)
 		mw.zkc.conversation = append(mw.zkc.conversation[:i:i],
 			mw.zkc.conversation[i+1:]...)
 		mw.zkc.focus(0)
