@@ -1,0 +1,36 @@
+I_a = alice's identity pubkey
+P_a = alice's identity privkey
+I_b = bob's identity pubkey
+P_b = bob's identity pubkey
+ 
+k_a = a symmetric encryption key chosen by alice
+Dh1_a = a public diffie-hellman point over ed25519 chosen by alice
+Ph1_a = the private point corresponding to Dh1_a
+ 
+Dh1_b = a public diffie-hellman point over ed25519 chosen by bob
+Ph1_b = the private point corresponding to Dh1_b
+ 
+k1 = a ntru prime shared key created by bob
+k2 = a ntru prime shared key created by alice
+c1 = ntru ciphertext corresponding to k1 and I_a, decipherable only by P_a
+c2 = ntru ciphertext corresponding to k2 and I_b, decipherable only by P_b
+ 
+E(p, k) = payload p encrypted with key k using xsalsa20 + poly1305
+ 
+[alice]           [server]              [bob]        remark
+------- E(I_a,k_a) ------>                           alice does /kx
+<------ pin --------------
+                  <------ pin ---------------        bob does /fetch
+                  ------- E(I_a,k_a) ------->        step 1
+<--------- E(I_b || c1 || Dh1_b, k_a) -------        step 2
+-----------E(c2 || Dh1_a, k_a) ------------->        step 3
+ 
+- the ratchet is completed by alice in step 2;
+- alice performs: k = k1 || k2;
+- the ratchet is completed by bob in step 3;
+- bob performs: k = k1 || k2;
+- len(k) == 64;
+- the various ratchet keys are then created by using k to hmac a
+  series of constant strings (same as before);
+- Dh1_a and Dh1_b are then used to perform the ratchet ping/pong which
+  ensures keys are rotated after one use (same as before).
