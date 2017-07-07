@@ -1,0 +1,32 @@
+I_s = server identity pubkey
+I_c = client identity pubkey
+I_se = ephemeral server identity pubkey
+I_ce = ephemeral client identity pubkey
+
+k1 = client-supplied key corresponding to I_s
+k2 = server-supplied key corresponding to I_ce
+k3 = client-supplied key corresponding to I_se
+k4 = server-supplied key corresponding to I_c
+
+c1 = ntru ciphertext corresponding to k1
+c2 = ntru ciphertext corresponding to k2
+c3 = ntru ciphertext corresponding to k3
+c4 = ntru ciphertext corresponding to k4
+
+E(p, k) = payload p encrypted with key k using xsalsa20 + poly1305
+H(p, k) = HMAC of payload p with respect to key k
+
+[client]                                                    [server]
+-------- c1, E(I_ce,k1) ------------------------------------------->
+<------- E(c2, k1), E(I_se, k2), E(H(I_ce || I_se,k1),k2) ----------
+-------- E(c3, k2), E(I_c, k3), E(H(I_c || I_ce || I_se, k2),k3) -->
+<------- E(c4, k3), E(H(I_s || I_c || I_ce || I_se, k3),k4) --------
+
+remarks:
+
+- only c1 is sent unencrypted;
+- client and server now possess k1, k2, k3, and k4;
+- client and server have authenticated each other;
+- client identity is only disclosed after server auth;
+- read key is set to the lower half of sha512(k1 || k2 || k3 || k4);
+- write key is set to the upper half of sha512(k1 || k2 || k3 || k4).
