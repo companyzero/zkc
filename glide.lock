@@ -6,6 +6,8 @@ imports:
   subpackages:
   - edwards25519
   - extra25519
+- name: github.com/companyzero/sntrup4591761
+  version: d12a55f2fc0d727215218349bc3c666b5e47bcd8
 - name: github.com/companyzero/ttk
   version: fcf641c1929e4c660af6e5579aabc6334f07ca5d
 - name: github.com/davecgh/go-spew

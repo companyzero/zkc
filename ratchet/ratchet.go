@@ -16,7 +16,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/companyzero/ntruprime"
+	"github.com/companyzero/sntrup4591761"
 	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/ratchet/disk"
 
@@ -42,11 +42,11 @@ const (
 
 // Ratchet contains the per-contact, crypto state.
 type Ratchet struct {
-	MyPrivateKey        *[ntruprime.PrivateKeySize]byte
+	MyPrivateKey        *[sntrup4591761.PrivateKeySize]byte
 	MySigningPublic     *[32]byte
 	TheirIdentityPublic *[32]byte
 	TheirSigningPublic  *[32]byte
-	TheirPublicKey      *[ntruprime.PublicKeySize]byte
+	TheirPublicKey      *[sntrup4591761.PublicKeySize]byte
 
 	// Now is an optional function that will be used to get the current
 	// time. If nil, time.Now is used.
@@ -99,14 +99,14 @@ func New(rand io.Reader) *Ratchet {
 }
 
 type KeyExchange struct {
-	Cipher [ntruprime.CiphertextSize]byte
+	Cipher [sntrup4591761.CiphertextSize]byte
 	Public []byte
 }
 
 // FillKeyExchange sets elements of kx with key exchange information from the
 // ratchet.
 func (r *Ratchet) FillKeyExchange(kx *KeyExchange) error {
-	c, k, err := ntruprime.Encapsulate(r.rand, r.TheirPublicKey)
+	c, k, err := sntrup4591761.Encapsulate(r.rand, r.TheirPublicKey)
 	if err != nil {
 		return err
 	}
@@ -176,9 +176,9 @@ func validateECDHpoint(p []byte) error {
 // CompleteKeyExchange takes a KeyExchange message from the other party and
 // establishes the ratchet.
 func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, Alice bool) error {
-	k, err := ntruprime.Decapsulate(&kx.Cipher, r.MyPrivateKey)
-	if err != nil {
-		return err
+	k, ok := sntrup4591761.Decapsulate(&kx.Cipher, r.MyPrivateKey)
+	if ok != 1 {
+		return errors.New("CompleteKeyExchange: decapsulation error")
 	}
 	r.TheirHalf = k
 
