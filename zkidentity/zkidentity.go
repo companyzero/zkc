@@ -15,7 +15,7 @@ import (
 	"fmt"
 
 	"github.com/agl/ed25519"
-	"github.com/companyzero/ntruprime"
+	"github.com/companyzero/sntrup4591761"
 	"github.com/davecgh/go-xdr/xdr2"
 )
 
@@ -39,7 +39,7 @@ type PublicIdentity struct {
 	Name      string
 	Nick      string
 	SigKey    [ed25519.PublicKeySize]byte
-	Key       [ntruprime.PublicKeySize]byte
+	Key       [sntrup4591761.PublicKeySize]byte
 	Identity  [sha256.Size]byte
 	Digest    [sha256.Size]byte           // digest of name, keys and identity
 	Signature [ed25519.SignatureSize]byte // signature of Digest
@@ -48,7 +48,7 @@ type PublicIdentity struct {
 type FullIdentity struct {
 	Public        PublicIdentity
 	PrivateSigKey [ed25519.PrivateKeySize]byte
-	PrivateKey    [ntruprime.PrivateKeySize]byte
+	PrivateKey    [sntrup4591761.PrivateKeySize]byte
 }
 
 func (fi *FullIdentity) Marshal() ([]byte, error) {
@@ -77,7 +77,7 @@ func New(name, nick string) (*FullIdentity, error) {
 	if err != nil {
 		return nil, err
 	}
-	ntruprimePub, ntruprimePriv, err := ntruprime.GenerateKey(prng)
+	ntruprimePub, ntruprimePriv, err := sntrup4591761.GenerateKey(prng)
 	if err != nil {
 		return nil, err
 	}

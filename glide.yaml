@@ -4,8 +4,7 @@ import:
   subpackages:
   - extra25519
 - package: github.com/companyzero/ttk
-- package: github.com/companyzero/ntruprime
-  repo: ssh://github.com/companyzero/ntruprime
+- package: github.com/companyzero/sntrup4591761
 - package: github.com/davecgh/go-spew
   subpackages:
   - spew
