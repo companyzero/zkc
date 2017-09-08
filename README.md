@@ -198,6 +198,10 @@ The documentation is a work-in-progress.  Add link here.
 
 **zkc has not been audited yet.  Use wisely.**
 
+## Audits and Development
+
+We are looking for contractors to audit and develop zkc and its crypto libs. Pay is offered in Decred.
+
 ## License
 
 zkc is licensed under the [copyfree](http://copyfree.org) ISC License.
