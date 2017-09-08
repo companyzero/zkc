@@ -1,10 +1,11 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016,2017 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package main
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/hex"
 	"flag"
@@ -119,6 +120,24 @@ func importClientRecord(root string, force bool, cr tools.ClientRecord) error {
 	return nil
 }
 
+func promptUser(cr tools.ServerRecord) error {
+	fmt.Fprintf(os.Stderr, "The authenticity of server '%s' can't be established.\n", cr.IPandPort)
+	fmt.Fprintf(os.Stderr, "Inner fingerprint = %s.\n", cr.PublicIdentity.Fingerprint())
+	fmt.Fprintf(os.Stderr, "Outer fingerprint = %s.\n", tools.Fingerprint(cr.Certificate))
+	fmt.Fprintf(os.Stderr, "Are you sure you want to import this server (yes/no)? ")
+
+	reader := bufio.NewReader(os.Stdin)
+	reply, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("could not prompt user: %v", err)
+	}
+	if reply != "yes\n" && reply != "y\n" {
+		return fmt.Errorf("refusing to import server")
+	}
+
+	return nil
+}
+
 func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 	// make sure we have a valid zkclient directory
 	var dir string
@@ -146,6 +165,13 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 		action = "overwrite"
 	}
 
+	// ask the user to verify the server's coordinates
+	if force == false {
+		err = promptUser(cr)
+		if err != nil {
+			return err
+		}
+	}
 	// save server as our very own
 	server, err := inidb.New(serverFile, true, 10)
 	if err != nil && err != inidb.ErrCreated {
@@ -188,7 +214,7 @@ func _main() error {
 
 	filename := flag.String("cfg", "", "config file")
 	force := flag.Bool("f", false, "overwrite identity if it already "+
-		"exists (DANGEROUS)")
+		"exists; skip verification (DANGEROUS)")
 	verbose := flag.Bool("v", false, "enable verbose")
 	flag.Parse()
 
