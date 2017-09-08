@@ -263,10 +263,8 @@ func _main() error {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "import failed %v: %v\n",
 					v, err)
-				continue
+				os.Exit(1)
 			}
-			continue
-
 		case tools.ServerRecord:
 			if *verbose {
 				spew.Config.ContinueOnMethod = true
@@ -276,15 +274,11 @@ func _main() error {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "import failed %v: %v\n",
 					v, err)
-				continue
+				os.Exit(1)
 			}
-			continue
-
 		default:
 			fmt.Fprintf(os.Stderr, "not reached")
-			continue
 		}
-
 	}
 
 	return nil
