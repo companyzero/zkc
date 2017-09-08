@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/companyzero/ttk"
@@ -169,22 +170,29 @@ func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 					"Could not obtain remote identity")
 				return
 			}
+
+			ww.Status(w, false, "Connected to: %v %v", pid.Name,
+				pid.Fingerprint())
+
+			aw := &acceptWindow{
+				zkc:   ww.zkc,
+				host:  ww.server,
+				conn:  conn,
+				cs:    cs,
+				pid:   &pid,
+				token: strings.Replace(ww.token, " ", "", -1),
+			}
+			ww.zkc.ttkAW = ttk.NewWindow(aw)
+			ttk.Focus(ww.zkc.ttkAW)
 		} else {
 			pid = *ww.zkc.serverIdentity
+			ww.Status(w, false, "Connected to: %v %v", pid.Name,
+				pid.Fingerprint())
+			err := ww.zkc.finalizeAccountCreation(conn, cs, &pid,
+				strings.Replace(ww.token, " ", "", -1))
+			if err != nil {
+				ww.Status(w, true, fmt.Sprintf("%v", err))
+			}
 		}
-
-		ww.Status(w, false, "Connected to: %v %v", pid.Name,
-			pid.Fingerprint())
-
-		aw := &acceptWindow{
-			zkc:   ww.zkc,
-			host:  ww.server,
-			conn:  conn,
-			cs:    cs,
-			pid:   &pid,
-			token: strings.Replace(ww.token, " ", "", -1),
-		}
-		ww.zkc.ttkAW = ttk.NewWindow(aw)
-		ttk.Focus(ww.zkc.ttkAW)
 	}
 }
