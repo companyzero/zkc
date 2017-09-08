@@ -101,10 +101,6 @@ func importClientRecord(root string, force bool, cr tools.ClientRecord) error {
 	i := hex.EncodeToString(cr.PublicIdentity.Identity[:])
 	user := path.Join(dir, tools.ZKSHome, i)
 	_, err = os.Stat(user)
-	action := "Imported"
-	if err == nil {
-		action = "Overwrote"
-	}
 
 	a, err := account.New(home)
 	if err != nil {
@@ -115,7 +111,7 @@ func importClientRecord(root string, force bool, cr tools.ClientRecord) error {
 		return err
 	}
 
-	fmt.Printf("%v %v: %v\n", action, cr.PublicIdentity.Name, cr.PublicIdentity.Fingerprint())
+	fmt.Printf("Imported %v: %v\n", cr.PublicIdentity.Name, cr.PublicIdentity.Fingerprint())
 
 	return nil
 }
@@ -160,9 +156,8 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 	// see if server already exists
 	serverFile := path.Join(dir, tools.ZKCServerFilename)
 	_, err := os.Stat(serverFile)
-	action := "Imported"
-	if err == nil {
-		action = "Overwrote"
+	if err == nil && force == false {
+		return fmt.Errorf("server already configured")
 	}
 
 	// ask the user to verify the server's coordinates
@@ -200,7 +195,7 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 		return fmt.Errorf("could not save server: %v", err)
 	}
 
-	fmt.Printf("%v %v\n", action, cr.PublicIdentity.Fingerprint())
+	fmt.Printf("Imported %v\n", cr.PublicIdentity.Fingerprint())
 
 	return nil
 }
