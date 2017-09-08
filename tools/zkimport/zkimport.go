@@ -101,9 +101,9 @@ func importClientRecord(root string, force bool, cr tools.ClientRecord) error {
 	i := hex.EncodeToString(cr.PublicIdentity.Identity[:])
 	user := path.Join(dir, tools.ZKSHome, i)
 	_, err = os.Stat(user)
-	action := "imported"
+	action := "Imported"
 	if err == nil {
-		action = "overwrite"
+		action = "Overwrote"
 	}
 
 	a, err := account.New(home)
@@ -160,9 +160,9 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 	// see if server already exists
 	serverFile := path.Join(dir, tools.ZKCServerFilename)
 	_, err := os.Stat(serverFile)
-	action := "imported"
+	action := "Imported"
 	if err == nil {
-		action = "overwrite"
+		action = "Overwrote"
 	}
 
 	// ask the user to verify the server's coordinates
@@ -261,7 +261,7 @@ func _main() error {
 			}
 			err = importClientRecord(root, *force, r)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "import failed %v: %v\n",
+				fmt.Fprintf(os.Stderr, "Import failed %v: %v\n",
 					v, err)
 				os.Exit(1)
 			}
@@ -272,7 +272,7 @@ func _main() error {
 			}
 			err = importServerRecord(root, *force, r)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "import failed %v: %v\n",
+				fmt.Fprintf(os.Stderr, "Import failed %v: %v\n",
 					v, err)
 				os.Exit(1)
 			}
