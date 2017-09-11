@@ -105,12 +105,14 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 			wait <- false
 			t.Fatal(err)
 		}
+		defer listener.Close()
 		wait <- true // start client
 
 		conn, err := listener.Accept()
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer conn.Close()
 
 		bobKX.Conn = conn
 		err = bobKX.Respond()
@@ -145,6 +147,7 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer conn.Close()
 
 	aliceKX.Conn = conn
 	err = aliceKX.Initiate()
