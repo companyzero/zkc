@@ -38,7 +38,7 @@ func loadIdentities(t *testing.T) (alice, bob *zkidentity.FullIdentity) {
 	if err != nil {
 		panic(err)
 	}
-	blob1 := new([3092]byte)
+	blob1 := new([3076]byte)
 	_, err = io.ReadFull(f, blob1[:])
 	if err != nil {
 		panic(err)
@@ -52,7 +52,7 @@ func loadIdentities(t *testing.T) (alice, bob *zkidentity.FullIdentity) {
 	if err != nil {
 		panic(err)
 	}
-	blob2 := new([3088]byte)
+	blob2 := new([3072]byte)
 	_, err = io.ReadFull(f, blob2[:])
 	if err != nil {
 		panic(err)
