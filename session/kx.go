@@ -395,7 +395,7 @@ func (kx *KX) readWithKey(k *[32]byte) ([]byte, error) {
 	var payload []byte
 	_, err := xdr.UnmarshalLimited(kx.Conn, &payload, kx.MaxMessageSize)
 	if err != nil {
-		return nil, ErrUnmarshal
+		return nil, err
 	}
 	data, ok := secretbox.Open(nil, payload, &kx.readSeq, k)
 	incSeq(&kx.readSeq)
