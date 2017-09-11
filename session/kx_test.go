@@ -132,6 +132,8 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		listener.Close()
 	}()
 
 	ok := <-wait
