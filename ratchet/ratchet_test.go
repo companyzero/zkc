@@ -7,6 +7,7 @@ package ratchet
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -14,21 +15,19 @@ import (
 	"time"
 
 	"github.com/agl/ed25519"
-	"github.com/agl/ed25519/extra25519"
+	"github.com/companyzero/zkc/blobshare"
+	"github.com/companyzero/sntrup4591761"
 	"github.com/companyzero/zkc/ratchet/disk"
 	"github.com/davecgh/go-xdr/xdr2"
-
 	"golang.org/x/crypto/curve25519"
 )
 
 type client struct {
-	// priv is an Ed25519 private key.
-	priv [64]byte
-	// pub is the public key corresponding to priv.
-	pub [32]byte
-	// identity is a curve25519 private value that's used to authenticate
-	// the client to its home server.
-	identity, identityPublic [32]byte
+	PrivateKey	[sntrup4591761.PrivateKeySize]byte
+	PublicKey	[sntrup4591761.PublicKeySize]byte
+	SigningPrivate	[64]byte
+	SigningPublic	[32]byte
+	Identity	[sha256.Size]byte
 }
 
 func nowFunc() time.Time {
@@ -37,15 +36,22 @@ func nowFunc() time.Time {
 }
 
 func newClient() *client {
-	c := client{}
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	ed25519Pub, ed25519Priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		panic(err)
 	}
-	copy(c.priv[:], priv[:])
-	copy(c.pub[:], pub[:])
-	extra25519.PrivateKeyToCurve25519(&c.identity, priv)
-	curve25519.ScalarBaseMult(&c.identityPublic, &c.identity)
+	ntruprimePub, ntruprimePriv, err := sntrup4591761.GenerateKey(rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	identity := sha256.Sum256(ntruprimePub[:])
+
+	c := client{}
+	copy(c.SigningPrivate[:], ed25519Priv[:])
+	copy(c.SigningPublic[:], ed25519Pub[:])
+	copy(c.PrivateKey[:], ntruprimePriv[:])
+	copy(c.PublicKey[:], ntruprimePub[:])
+	copy(c.Identity[:], identity[:])
 
 	return &c
 }
@@ -54,17 +60,21 @@ func pairedRatchet(t *testing.T) (a, b *Ratchet) {
 	alice := newClient()
 	bob := newClient()
 
-	a, b = New(rand.Reader), New(rand.Reader)
+	a = New(rand.Reader)
 	a.Now = nowFunc
+	a.MyPrivateKey = &alice.PrivateKey
+	a.MySigningPublic = &alice.SigningPublic
+	a.TheirIdentityPublic = &bob.Identity
+	a.TheirSigningPublic = &bob.SigningPublic
+	a.TheirPublicKey = &bob.PublicKey
+
+	b = New(rand.Reader)
 	b.Now = nowFunc
-	a.MyIdentityPrivate = &alice.identity
-	b.MyIdentityPrivate = &bob.identity
-	a.TheirIdentityPublic = &bob.identityPublic
-	b.TheirIdentityPublic = &alice.identityPublic
-	a.MySigningPublic = &alice.pub
-	b.MySigningPublic = &bob.pub
-	a.TheirSigningPublic = &bob.pub
-	b.TheirSigningPublic = &alice.pub
+	b.MyPrivateKey = &bob.PrivateKey
+	b.MySigningPublic = &bob.SigningPublic
+	b.TheirIdentityPublic = &alice.Identity
+	b.TheirSigningPublic = &alice.SigningPublic
+	b.TheirPublicKey = &alice.PublicKey
 
 	kxA, kxB := new(KeyExchange), new(KeyExchange)
 	if err := a.FillKeyExchange(kxA); err != nil {
@@ -73,7 +83,7 @@ func pairedRatchet(t *testing.T) (a, b *Ratchet) {
 	if err := b.FillKeyExchange(kxB); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.CompleteKeyExchange(kxB, true); err != nil {
+	if err := a.CompleteKeyExchange(kxB, false); err != nil {
 		t.Fatal(err)
 	}
 	if err := b.CompleteKeyExchange(kxA, true); err != nil {
@@ -123,7 +133,7 @@ func reinitRatchet(t *testing.T, r *Ratchet) *Ratchet {
 	state := r.Marshal(nowFunc(), 1*time.Hour)
 	newR := New(rand.Reader)
 	newR.Now = nowFunc
-	newR.MyIdentityPrivate = r.MyIdentityPrivate
+	newR.MyPrivateKey = r.MyPrivateKey
 	newR.TheirIdentityPublic = r.TheirIdentityPublic
 	newR.MySigningPublic = r.MySigningPublic
 	newR.TheirSigningPublic = r.TheirSigningPublic
@@ -289,17 +299,20 @@ func TestHalfDiskState(t *testing.T) {
 	bob := newClient()
 
 	// half ratchet
-	a, b := New(rand.Reader), New(rand.Reader)
+	a := New(rand.Reader)
 	a.Now = nowFunc
-	a.MyIdentityPrivate = &alice.identity
-	a.MySigningPublic = &alice.pub
+	a.MyPrivateKey = &alice.PrivateKey
+	a.MySigningPublic = &alice.SigningPublic
+	a.TheirPublicKey = &bob.PublicKey
 
 	// full ratchet
+	b := New(rand.Reader)
 	b.Now = nowFunc
-	b.MyIdentityPrivate = &bob.identity
-	b.MySigningPublic = &bob.pub
-	b.TheirIdentityPublic = &alice.identityPublic
-	b.TheirSigningPublic = &alice.pub
+	b.MyPrivateKey = &bob.PrivateKey
+	b.MySigningPublic = &bob.SigningPublic
+	b.TheirIdentityPublic = &alice.Identity
+	b.TheirSigningPublic = &alice.SigningPublic
+	b.TheirPublicKey = &alice.PublicKey
 
 	kxB := new(KeyExchange)
 	if err := b.FillKeyExchange(kxB); err != nil {
@@ -311,9 +324,9 @@ func TestHalfDiskState(t *testing.T) {
 	if err := a.FillKeyExchange(kxA); err != nil {
 		panic(err)
 	}
-	a.TheirIdentityPublic = &bob.identityPublic
-	a.TheirSigningPublic = &bob.pub
-	if err := a.CompleteKeyExchange(kxB, true); err != nil {
+	a.TheirIdentityPublic = &bob.Identity
+	a.TheirSigningPublic = &bob.SigningPublic
+	if err := a.CompleteKeyExchange(kxB, false); err != nil {
 		panic(err)
 	}
 
@@ -421,51 +434,96 @@ func TestDiskState(t *testing.T) {
 	}
 }
 
-func TestECDHpoints(y *testing.T) {
+func FillKeyExchangeWithPublicPoint(r *Ratchet, kx *KeyExchange, pub *[32]byte) error {
+	c, k, err := sntrup4591761.Encapsulate(r.rand, r.TheirPublicKey)
+	if err != nil {
+		return err
+	}
+	blobshare.SetNrp(32768, 16, 2)
+	key, salt, err := blobshare.NewKey(k[:])
+	if err != nil {
+		return err
+	}
+	encrypted, nonce, err := blobshare.Encrypt(pub[:], key)
+	if err != nil {
+		return err
+	}
+	packed := blobshare.PackSaltNonce(salt, nonce, encrypted)
+
+	r.MyHalf = k
+	copy(kx.Cipher[:], c[:])
+	kx.Public = packed
+
+	return nil
+}
+
+func testECDHpoint(t *testing.T, a *Ratchet, pubDH *[32]byte) error {
 	alice := newClient()
 	bob := newClient()
 
-	a, b := New(rand.Reader), New(rand.Reader)
 	a.Now = nowFunc
+	a.MyPrivateKey = &alice.PrivateKey
+	a.MySigningPublic = &alice.SigningPublic
+	a.TheirIdentityPublic = &bob.Identity
+	a.TheirSigningPublic = &bob.SigningPublic
+	a.TheirPublicKey = &bob.PublicKey
+
+	b := New(rand.Reader)
 	b.Now = nowFunc
-	a.MyIdentityPrivate = &alice.identity
-	b.MyIdentityPrivate = &bob.identity
-	a.TheirIdentityPublic = &bob.identityPublic
-	b.TheirIdentityPublic = &alice.identityPublic
-	a.MySigningPublic = &alice.pub
-	b.MySigningPublic = &bob.pub
-	a.TheirSigningPublic = &bob.pub
-	b.TheirSigningPublic = &alice.pub
+	b.MyPrivateKey = &bob.PrivateKey
+	b.MySigningPublic = &bob.SigningPublic
+	b.TheirIdentityPublic = &alice.Identity
+	b.TheirSigningPublic = &alice.SigningPublic
+	b.TheirPublicKey = &alice.PublicKey
 
-	kxA := new(KeyExchange)
-	if err := a.FillKeyExchange(kxA); err != nil {
-		panic(err)
+	kxA, kxB := new(KeyExchange), new(KeyExchange)
+	if err := FillKeyExchangeWithPublicPoint(a, kxA, pubDH); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.FillKeyExchange(kxB); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.CompleteKeyExchange(kxB, false); err != nil {
+		return err
+	}
+	if err := b.CompleteKeyExchange(kxA, true); err != nil {
+		return err
 	}
 
-	// test 1: Dh = 0
-	kxA.Dh = make([]byte, 32)
-	err := b.CompleteKeyExchange(kxA, true)
+	return nil
+}
+
+func TestECDHpoints(t *testing.T) {
+	a := New(rand.Reader)
+	pubDH := new([32]byte)
+	// test 1: dh = 0
+	err := testECDHpoint(t, a, pubDH)
 	if err == nil {
 		panic("invalid ECDH kx succeeded")
 	}
-
-	// test 2: Dh = 1
-	kxA.Dh[0] = 1
-	err = b.CompleteKeyExchange(kxA, true)
+	// test 2: dh = 1
+	a = New(rand.Reader)
+	pubDH[0] = 1
+	err = testECDHpoint(t, a, pubDH)
 	if err == nil {
 		panic("invalid ECDH kx succeeded")
 	}
-
 	// test 3: Dh = 2^256 - 1
+	a = New(rand.Reader)
 	for i := 0; i < 32; i++ {
-		kxA.Dh[i] = 0xff
+		pubDH[i] = 0xff
 	}
-	err = b.CompleteKeyExchange(kxA, true)
+	err = testECDHpoint(t, a, pubDH)
 	if err == nil {
 		panic("invalid ECDH kx succeeded")
 	}
-
-	return
+	// test 4: make sure testECDHpoint() works
+	a = New(rand.Reader)
+	curve25519.ScalarBaseMult(pubDH, a.kxPrivate)
+	err = testECDHpoint(t, a, pubDH)
+	if err != nil {
+		panic("valid ECDH kx failed")
+	}
 }
 
 func TestImpersonation(t *testing.T) {
@@ -475,19 +533,21 @@ func TestImpersonation(t *testing.T) {
 
 	b := New(rand.Reader)
 	b.Now = nowFunc
-	b.MyIdentityPrivate = &bob.identity
-	b.MySigningPublic = &bob.pub
+	b.MyPrivateKey = &bob.PrivateKey
+	b.MySigningPublic = &bob.SigningPublic
 
 	c := New(rand.Reader)
 	c.Now = nowFunc
-	c.MyIdentityPrivate = &chris.identity
-	c.MySigningPublic = &chris.pub
+	c.MyPrivateKey = &chris.PrivateKey
+	c.MySigningPublic = &chris.SigningPublic
 
 	// pair Bob and Chris
-	b.TheirIdentityPublic = &chris.identityPublic
-	b.TheirSigningPublic = &chris.pub
-	c.TheirIdentityPublic = &bob.identityPublic
-	c.TheirIdentityPublic = &bob.pub
+	b.TheirIdentityPublic = &chris.Identity
+	b.TheirSigningPublic = &chris.SigningPublic
+	b.TheirPublicKey = &chris.PublicKey
+	c.TheirIdentityPublic = &bob.Identity
+	c.TheirIdentityPublic = &bob.SigningPublic
+	c.TheirPublicKey = &bob.PublicKey
 
 	// kx from Bob to Chris
 	kxBC := new(KeyExchange)
@@ -499,7 +559,7 @@ func TestImpersonation(t *testing.T) {
 	if err := c.FillKeyExchange(kxCB); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.CompleteKeyExchange(kxBC, true); err != nil {
+	if err := c.CompleteKeyExchange(kxBC, false); err != nil {
 		t.Fatal(err)
 	}
 	if err := b.CompleteKeyExchange(kxCB, true); err != nil {
@@ -509,21 +569,23 @@ func TestImpersonation(t *testing.T) {
 	// Chris knows Bob's public key, and will now impersonate Bob to Alice.
 	a := New(rand.Reader)
 	a.Now = nowFunc
-	a.MyIdentityPrivate = &alice.identity
-	a.MySigningPublic = &alice.pub
+	a.MyPrivateKey = &alice.PrivateKey
+	a.MySigningPublic = &alice.SigningPublic
 
 	notB := New(rand.Reader)
 	notB.Now = nowFunc
-	notB.MyIdentityPrivate = &chris.identity // I am actually Chris...
-	notB.MySigningPublic = &bob.pub          // But Alice will think I am Bob.
+	notB.MyPrivateKey = &chris.PrivateKey // I am actually Chris...
+	notB.MySigningPublic = &bob.SigningPublic // But Alice will think I am Bob.
 
 	// Alice thinks she's talking to Bob
-	a.TheirIdentityPublic = &bob.identityPublic
-	a.TheirSigningPublic = &bob.pub
+	a.TheirIdentityPublic = &bob.Identity
+	a.TheirSigningPublic = &bob.SigningPublic
+	a.TheirPublicKey = &bob.PublicKey
 
 	// While notBob (Chris) knows it's talking to Alice
-	notB.TheirIdentityPublic = &alice.identityPublic
-	notB.TheirSigningPublic = &alice.pub
+	notB.TheirIdentityPublic = &alice.Identity
+	notB.TheirSigningPublic = &alice.SigningPublic
+	notB.TheirPublicKey = &alice.PublicKey
 
 	kxCA := new(KeyExchange)
 	if err := notB.FillKeyExchange(kxCA); err != nil {
@@ -542,31 +604,10 @@ func TestImpersonation(t *testing.T) {
 	// 	kxCA.Dh1[i] = 0
 	// }
 	// ^ These could be set to 1 to leak part of a zkclient's private key.
-	if err := a.CompleteKeyExchange(kxCA, true); err != nil {
+	if err := a.CompleteKeyExchange(kxCA, false); err != nil {
 		t.Fatal(err)
 	}
-	if err := notB.CompleteKeyExchange(kxAC, true); err != nil {
-		t.Fatal(err)
-	}
-
-	// see if we can go back and forth
-	msg := []byte("test message")
-	encrypted := a.Encrypt(nil, msg)
-	result, err := notB.Decrypt(encrypted)
-	if err == nil {
-		t.Fatal("should not have decrypted")
-	}
-	if bytes.Equal(msg, result) {
-		t.Fatalf("results match: %x vs %x", msg, result)
-	}
-
-	// reverse direction
-	encrypted = notB.Encrypt(nil, msg)
-	result, err = a.Decrypt(encrypted)
-	if err == nil {
-		t.Fatal("should not have decrypted")
-	}
-	if bytes.Equal(msg, result) {
-		t.Fatalf("results match: %x vs %x", msg, result)
+	if err := notB.CompleteKeyExchange(kxAC, true); err == nil {
+		t.Fatal("kx should not have completed")
 	}
 }
