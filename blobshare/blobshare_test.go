@@ -11,8 +11,8 @@ import (
 	"testing"
 )
 
-const (
-	password = "mysekritpassword"
+var (
+	password = []byte("mysekritpassword")
 )
 
 func TestPackSaltNonce(t *testing.T) {
