@@ -25,16 +25,19 @@ var (
 )
 
 func pairedRatchet() (a, b *ratchet.Ratchet) {
-	a, b = ratchet.New(rand.Reader), ratchet.New(rand.Reader)
-	a.MyIdentityPrivate = &alice.PrivateIdentity
-	a.MySigningPublic = &alice.Public.Key
+	a = ratchet.New(rand.Reader)
+	a.MyPrivateKey = &alice.PrivateKey
+	a.MySigningPublic = &alice.Public.SigKey
 	a.TheirIdentityPublic = &bob.Public.Identity
-	a.TheirSigningPublic = &bob.Public.Key
+	a.TheirSigningPublic = &bob.Public.SigKey
+	a.TheirPublicKey = &bob.Public.Key
 
-	b.MyIdentityPrivate = &bob.PrivateIdentity
-	b.MySigningPublic = &bob.Public.Key
+	b = ratchet.New(rand.Reader)
+	b.MyPrivateKey = &bob.PrivateKey
+	b.MySigningPublic = &bob.Public.SigKey
 	b.TheirIdentityPublic = &alice.Public.Identity
-	b.TheirSigningPublic = &alice.Public.Key
+	b.TheirSigningPublic = &alice.Public.SigKey
+	b.TheirPublicKey = &alice.Public.Key
 
 	kxA, kxB := new(ratchet.KeyExchange), new(ratchet.KeyExchange)
 	if err := a.FillKeyExchange(kxA); err != nil {
@@ -43,35 +46,7 @@ func pairedRatchet() (a, b *ratchet.Ratchet) {
 	if err := b.FillKeyExchange(kxB); err != nil {
 		panic(err)
 	}
-	if err := a.CompleteKeyExchange(kxB, true); err != nil {
-		panic(err)
-	}
-	if err := b.CompleteKeyExchange(kxA, true); err != nil {
-		panic(err)
-	}
-	return
-}
-
-func pairedImpersonatedRatchet() (a, b, c *ratchet.Ratchet) {
-	a, b = ratchet.New(rand.Reader), ratchet.New(rand.Reader)
-	a.MyIdentityPrivate = &alice.PrivateIdentity
-	a.MySigningPublic = &alice.Public.Key
-	a.TheirIdentityPublic = &bob.Public.Identity
-	a.TheirSigningPublic = &bob.Public.Key
-
-	b.MyIdentityPrivate = &chris.PrivateIdentity // I am chris
-	b.MySigningPublic = &bob.Public.Key          // pretending to be bob
-	b.TheirIdentityPublic = &alice.Public.Identity
-	b.TheirSigningPublic = &alice.Public.Key
-
-	kxA, kxB := new(ratchet.KeyExchange), new(ratchet.KeyExchange)
-	if err := a.FillKeyExchange(kxA); err != nil {
-		panic(err)
-	}
-	if err := b.FillKeyExchange(kxB); err != nil {
-		panic(err)
-	}
-	if err := a.CompleteKeyExchange(kxB, true); err != nil {
+	if err := a.CompleteKeyExchange(kxB, false); err != nil {
 		panic(err)
 	}
 	if err := b.CompleteKeyExchange(kxA, true); err != nil {
@@ -113,34 +88,36 @@ func TestEncryptDecryptSmall(t *testing.T) {
 	}
 }
 
-func TestEncryptImpersonatedDecryptSmall(t *testing.T) {
-	a, b, c := pairedImpersonatedRatchet()
-	_ = c
+func TestImpersonatedRatchet(t *testing.T) {
+	a := ratchet.New(rand.Reader)
+	a.MyPrivateKey = &alice.PrivateKey
+	a.MySigningPublic = &alice.Public.SigKey
+	a.TheirIdentityPublic = &bob.Public.Identity
+	a.TheirSigningPublic = &bob.Public.SigKey
+	a.TheirPublicKey = &bob.Public.Key
 
-	msg := []byte("test message")
-	encrypted := a.Encrypt(nil, msg)
-	result, err := b.Decrypt(encrypted)
-	if err == nil {
-		t.Fatal("should not have decrypted")
-	}
-	if bytes.Equal(msg, result) {
-		t.Fatalf("results match: %x vs %x", msg, result)
-	}
-}
+	b := ratchet.New(rand.Reader)
+	b.MyPrivateKey = &chris.PrivateKey // I am chris
+	b.MySigningPublic = &bob.Public.SigKey // pretending to be bob
+	b.TheirIdentityPublic = &alice.Public.Identity // trying to fool Alice
+	b.TheirSigningPublic = &alice.Public.SigKey
+	b.TheirPublicKey = &alice.Public.Key
 
-func TestEncryptImpersonatedDecryptSmallReversed(t *testing.T) {
-	a, b, c := pairedImpersonatedRatchet()
-	_ = c
+	kxA, kxB := new(ratchet.KeyExchange), new(ratchet.KeyExchange)
+	if err := a.FillKeyExchange(kxA); err != nil {
+		panic(err)
+	}
+	if err := b.FillKeyExchange(kxB); err != nil {
+		panic(err)
+	}
+	if err := a.CompleteKeyExchange(kxB, false); err != nil {
+		return
+	}
+	if err := b.CompleteKeyExchange(kxA, true); err != nil {
+		return
+	}
 
-	msg := []byte("test message")
-	encrypted := b.Encrypt(nil, msg)
-	result, err := a.Decrypt(encrypted)
-	if err == nil {
-		t.Fatal("should not have decrypted")
-	}
-	if bytes.Equal(msg, result) {
-		t.Fatalf("results match: %x vs %x", msg, result)
-	}
+	panic("impersonated ratchet completed")
 }
 
 func TestEncryptDecryptLarge(t *testing.T) {
