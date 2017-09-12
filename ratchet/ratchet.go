@@ -95,6 +95,7 @@ func New(rand io.Reader) *Ratchet {
 	r.rand = rand
 	r.kxPrivate = new([32]byte)
 	r.randBytes(r.kxPrivate[:])
+	r.saved = make(map[[32]byte]map[uint32]savedKey)
 	return r
 }
 
