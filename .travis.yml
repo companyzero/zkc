@@ -15,8 +15,8 @@ script:
       --enable=gofmt
       --enable=vet
       --enable=unconvert
-      --deadline=60m $(glide novendor) | tee /dev/stderr)"
-  - go test -v -race $(glide novendor)
+      --deadline=10m $(glide novendor) | tee /dev/stderr)"
+  - go test -v $(glide novendor)
 #after_success:
 #    - go get -v github.com/mattn/goveralls
 #    - goveralls -coverprofile=profile.cov -service=travis-ci
