@@ -195,44 +195,44 @@ func TestThreeWayHandshake(t *testing.T) {
 	}
 }
 
-// func TestEncryptDecryptLargeNrp(t *testing.T) {
-// 	SetNrp(65536, 32, 4)
-// 	var payload [1024]byte
-// 	_, err := io.ReadFull(rand.Reader, payload[:])
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 
-// 	key, salt, err := NewKey(password)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 
-// 	encrypted, nonce, err := Encrypt(payload[:], key)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 
-// 	packed := PackSaltNonce(salt, nonce, encrypted)
-// 
-// 	// reverse process
-// 	saltR, nonceR, dataR, err := UnpackSaltNonce(packed)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 
-// 	dk, err := DeriveKey(password, saltR)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 
-// 	decrypted, err := Decrypt(dk, nonceR, dataR)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 
-// 	if !bytes.Equal(decrypted, payload[:]) {
-// 		t.Fatalf("corrupted data")
-// 	}
-// 	SetNrp(16384, 8, 1)
-// }
+func TestEncryptDecryptLargeNrp(t *testing.T) {
+	SetNrp(65536, 32, 4)
+	var payload [1024]byte
+	_, err := io.ReadFull(rand.Reader, payload[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	key, salt, err := NewKey(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encrypted, nonce, err := Encrypt(payload[:], key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	packed := PackSaltNonce(salt, nonce, encrypted)
+
+	// reverse process
+	saltR, nonceR, dataR, err := UnpackSaltNonce(packed)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dk, err := DeriveKey(password, saltR)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	decrypted, err := Decrypt(dk, nonceR, dataR)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(decrypted, payload[:]) {
+		t.Fatalf("corrupted data")
+	}
+	SetNrp(16384, 8, 1)
+}
