@@ -15,7 +15,7 @@ script:
       --enable=gofmt
       --enable=vet
       --enable=unconvert
-      --deadline=4m $(glide novendor) | tee /dev/stderr)"
+      --deadline=60m $(glide novendor) | tee /dev/stderr)"
   - go test -v -race $(glide novendor)
 #after_success:
 #    - go get -v github.com/mattn/goveralls
