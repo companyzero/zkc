@@ -1,5 +1,5 @@
-hash: 5d0a7018b7275c53493a2cda398bd29693ea8097abd3d8e69d6f16889adfff23
-updated: 2017-06-30T13:36:26.038479713Z
+hash: 956185a890fa281a7b6bb13c215588e9eadf13e11efaa449b25e416914d8899c
+updated: 2017-09-13T07:13:18.994310187Z
 imports:
 - name: github.com/agl/ed25519
   version: 5312a61534124124185d41f09206b9fef1d88403
@@ -8,6 +8,14 @@ imports:
   - extra25519
 - name: github.com/companyzero/sntrup4591761
   version: d12a55f2fc0d727215218349bc3c666b5e47bcd8
+  subpackages:
+  - r3
+  - r3/mod3
+  - r3/vector
+  - rq
+  - rq/modq
+  - rq/vector
+  - zx
 - name: github.com/companyzero/ttk
   version: fcf641c1929e4c660af6e5579aabc6334f07ca5d
 - name: github.com/davecgh/go-spew
