@@ -15,19 +15,19 @@ import (
 	"time"
 
 	"github.com/agl/ed25519"
-	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/sntrup4591761"
+	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/ratchet/disk"
 	"github.com/davecgh/go-xdr/xdr2"
 	"golang.org/x/crypto/curve25519"
 )
 
 type client struct {
-	PrivateKey	[sntrup4591761.PrivateKeySize]byte
-	PublicKey	[sntrup4591761.PublicKeySize]byte
-	SigningPrivate	[64]byte
-	SigningPublic	[32]byte
-	Identity	[sha256.Size]byte
+	PrivateKey     [sntrup4591761.PrivateKeySize]byte
+	PublicKey      [sntrup4591761.PublicKeySize]byte
+	SigningPrivate [64]byte
+	SigningPublic  [32]byte
+	Identity       [sha256.Size]byte
 }
 
 func nowFunc() time.Time {
@@ -574,7 +574,7 @@ func TestImpersonation(t *testing.T) {
 
 	notB := New(rand.Reader)
 	notB.Now = nowFunc
-	notB.MyPrivateKey = &chris.PrivateKey // I am actually Chris...
+	notB.MyPrivateKey = &chris.PrivateKey     // I am actually Chris...
 	notB.MySigningPublic = &bob.SigningPublic // But Alice will think I am Bob.
 
 	// Alice thinks she's talking to Bob
