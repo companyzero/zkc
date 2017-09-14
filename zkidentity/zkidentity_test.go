@@ -97,8 +97,8 @@ func TestImpersonatedRatchet(t *testing.T) {
 	a.TheirPublicKey = &bob.Public.Key
 
 	b := ratchet.New(rand.Reader)
-	b.MyPrivateKey = &chris.PrivateKey // I am chris
-	b.MySigningPublic = &bob.Public.SigKey // pretending to be bob
+	b.MyPrivateKey = &chris.PrivateKey             // I am chris
+	b.MySigningPublic = &bob.Public.SigKey         // pretending to be bob
 	b.TheirIdentityPublic = &alice.Public.Identity // trying to fool Alice
 	b.TheirSigningPublic = &alice.Public.SigKey
 	b.TheirPublicKey = &alice.Public.Key
