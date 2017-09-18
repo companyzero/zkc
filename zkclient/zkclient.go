@@ -82,9 +82,9 @@ func (z *ZKC) calculateStatus() string {
 }
 
 func differentDay(x, y time.Time) bool {
-	return x.Day()   != y.Day() ||
-	       x.Month() != y.Month() ||
-	       x.Year()  != y.Year()
+	return x.Day() != y.Day() ||
+		x.Month() != y.Month() ||
+		x.Year() != y.Year()
 }
 
 // updateTS updates the timestamp of a conversation. Lock must be held.
