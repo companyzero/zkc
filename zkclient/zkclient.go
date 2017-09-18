@@ -81,15 +81,41 @@ func (z *ZKC) calculateStatus() string {
 		paging)
 }
 
+func differentDay(x, y time.Time) bool {
+	return x.Day()   != y.Day() ||
+	       x.Month() != y.Month() ||
+	       x.Year()  != y.Year()
+}
+
+// updateTS updates the timestamp of a conversation. Lock must be held.
+func (z *ZKC) updateTS(id int, ts time.Time) {
+	var msg string
+	var c *conversation = z.conversation[id]
+
+	if c.lastMsg.IsZero() {
+		msg = fmt.Sprintf("first message received on %v %s %v",
+			ts.Day(), ts.Month(), ts.Year())
+	} else if differentDay(ts, c.lastMsg) {
+		msg = fmt.Sprintf("day changed to %v %s %v", ts.Day(),
+			ts.Month(), ts.Year())
+	}
+	if msg != "" {
+		c.console.Append("%v %s", ts.Format(z.settings.TimeFormat), msg)
+		z.log(id, "%v %s", ts.Format(z.settings.LongTimeFormat), msg)
+	}
+
+	c.lastMsg = ts
+}
+
 func (z *ZKC) PrintfT(id int, format string, args ...interface{}) {
-	z.printf(id, time.Now(), format, args...)
+	z.printf(id, time.Now(), true, format, args...)
 }
 
 func (z *ZKC) PrintfTS(id int, ts time.Time, format string, args ...interface{}) {
-	z.printf(id, ts, format, args...)
+	z.printf(id, ts, false, format, args...)
 }
 
-func (z *ZKC) printf(id int, ts time.Time, format string, args ...interface{}) {
+func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...interface{}) {
 	output := fmt.Sprintf(format, args...)
 	ttk.Queue(func() {
 		z.RLock()
@@ -97,6 +123,9 @@ func (z *ZKC) printf(id int, ts time.Time, format string, args ...interface{}) {
 			id = z.active
 		}
 		if id < len(z.conversation) && z.conversation[id] != nil {
+			if localTs == false {
+				z.updateTS(id, ts)
+			}
 			z.conversation[id].console.Append("%v %v",
 				ts.Format(z.settings.TimeFormat),
 				output)
@@ -205,8 +234,9 @@ type conversation struct {
 	id        *zkidentity.PublicIdentity
 	nick      string
 	dirty     bool
-	group     bool // when set it is a group chat
-	mentioned bool // set when user nick is mentiond in group chat
+	group     bool      // when set it is a group chat
+	mentioned bool      // set when user nick is mentiond in group chat
+	lastMsg   time.Time // stamp of last received msg
 }
 
 func (z *ZKC) nextConversation() {
