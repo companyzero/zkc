@@ -280,7 +280,7 @@ type IdentityFind struct {
 }
 
 type IdentityFindReply struct {
-	Error string
+	Error    string
 	Identity zkidentity.PublicIdentity
 }
 
