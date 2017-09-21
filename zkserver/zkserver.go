@@ -628,7 +628,7 @@ func (z *ZKS) listen() error {
 func _main() error {
 	z := &ZKS{}
 
-	// settings
+	// flags and settings
 	var err error
 	z.settings, err = ObtainSettings()
 	if err != nil {

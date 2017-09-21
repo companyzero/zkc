@@ -1586,7 +1586,7 @@ func _main() error {
 		msgSize:      uint(rpc.PropMaxMsgSizeDefault),
 	}
 
-	// settings
+	// flags and settings
 	var err error
 	z.settings, err = ObtainSettings()
 	if err != nil {
