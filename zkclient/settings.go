@@ -141,7 +141,7 @@ func ObtainSettings() (*Settings, error) {
 
 	if *version {
 		fmt.Fprintf(os.Stderr, "zkclient %s (%s) protocol version %d\n",
-		    zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
+			zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
 		os.Exit(0)
 	}
 
