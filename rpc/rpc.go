@@ -93,7 +93,7 @@ type Message struct {
 type Empty struct{}
 
 const (
-	ProtocolVersion = 5
+	ProtocolVersion = 6
 )
 
 // Welcome is written immediately following a key exchange.  This command
