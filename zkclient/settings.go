@@ -10,9 +10,12 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 
 	"github.com/companyzero/ttk"
+	"github.com/companyzero/zkc/rpc"
+	"github.com/companyzero/zkc/zkutil"
 	"github.com/mitchellh/go-homedir"
 	"github.com/vaughan0/go-ini"
 )
@@ -133,7 +136,14 @@ func ObtainSettings() (*Settings, error) {
 	// config file
 	filename := flag.String("cfg", path.Join(s.Home, ".zkclient",
 		"zkclient.conf"), "config file")
+	version := flag.Bool("version", false, "show version")
 	flag.Parse()
+
+	if *version {
+		fmt.Fprintf(os.Stderr, "zkclient %s (%s) protocol version %d\n",
+			zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
+		os.Exit(0)
+	}
 
 	// make sure conf isn't a dir
 	fi, err := os.Stat(*filename)
