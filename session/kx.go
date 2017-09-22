@@ -99,6 +99,9 @@ type Printable func(int, string, ...interface{})
 
 var diagnosticFunction Printable
 
+// SetDiagnostic allows a function of the Printable type to be
+// specified as the routine to be called for instrumentation of the
+// kx code.
 func SetDiagnostic(f Printable) {
 	diagnosticFunction = f
 }
