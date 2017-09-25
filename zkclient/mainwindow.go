@@ -405,8 +405,7 @@ func (mw *mainWindow) action(cmd string) error {
 		mw.zkc.Lock()
 		mw.zkc.offline = false
 		mw.zkc.Unlock()
-		mw.zkc.goOnlineAndPrint()
-		return nil
+		return mw.zkc.goOnlineAndPrint()
 
 	case cmdOffline:
 		// error is handled in function

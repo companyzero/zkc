@@ -112,11 +112,16 @@ func (z *ZKC) loadIdentities() error {
 		br := bytes.NewReader(idXDR)
 		_, err = xdr.Unmarshal(br, &idDisk)
 		if err != nil {
-			z.PrintfT(0, "unmarshal public identity: %v", filename)
+			z.PrintfT(0, "unmarshal public identity %v: %v",
+				filename, err)
 			continue
 		}
 
-		z.addressBookAdd(idDisk)
+		err = z.addressBookAdd(idDisk)
+		if err != nil {
+			z.PrintfT(0, "unable to add to address book: %v", err)
+			return err
+		}
 	}
 
 	return nil

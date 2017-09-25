@@ -124,7 +124,12 @@ func (z *ZKC) step3IDKX(msg rpc.Message, p rpc.Push) error {
 			return fmt.Errorf("identities don't match")
 		}
 
-		z.addressBookAdd(*id)
+		err = z.addressBookAdd(*id)
+		if err != nil {
+			return fmt.Errorf("could not add to address "+
+				"book: %v", err)
+		}
+
 		z.printKX(id)
 
 		z.Dbg(idZKC, "step 3 (push) idkx complete %v",
@@ -250,7 +255,12 @@ func (z *ZKC) step2IDKX(msg rpc.Message, p rpc.Push) error {
 			return fmt.Errorf("could not send KX %v", err)
 		}
 
-		z.addressBookAdd(idkx.Identity)
+		err = z.addressBookAdd(idkx.Identity)
+		if err != nil {
+			return fmt.Errorf("could not add to address book: %v",
+				err)
+		}
+
 		z.printKX(&idkx.Identity)
 
 		z.Dbg(idZKC, "step 2 (push) idkx complete %v",
@@ -974,10 +984,13 @@ func (z *ZKC) handleGroupList(msg rpc.Message, p rpc.Push,
 	z.diffGroupListPrint(gl)
 
 	// warn about missing keys
-	z.warnGroupListMissingKeys(true, gl)
+	err := z.warnGroupListMissingKeys(true, gl)
+	if err != nil {
+		z.PrintfT(0, "could not warn about missing keys: %v", err)
+	}
 
 	// update grouplist
-	err := z.updateGroupList(p.From, gl)
+	err = z.updateGroupList(p.From, gl)
 	if err != nil {
 		z.PrintfT(0, "could not update group chat list: %v %v"+
 			z.settings.GcColor+gl.Name+RESET,
