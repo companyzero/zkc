@@ -65,7 +65,8 @@ func New(filename string, create bool, depth int) (*INIDB, error) {
 	//
 
 	var err error
-	i.lock, err = lockfile.New(path.Join(path.Dir(filename), ".lock"))
+	dirname := path.Join(path.Dir(filename), ".lock")
+	i.lock, err = lockfile.New(dirname, time.Second)
 	if os.IsNotExist(err) && create {
 		err = os.MkdirAll(path.Dir(filename), 0700)
 		if err != nil {
@@ -74,8 +75,7 @@ func New(filename string, create bool, depth int) (*INIDB, error) {
 		}
 
 		// and make sure we have a lock structure
-		i.lock, err = lockfile.New(path.Join(path.Dir(filename),
-			".lock"))
+		i.lock, err = lockfile.New(dirname, time.Second)
 		if err != nil {
 			return nil, err
 		}

@@ -30,11 +30,11 @@ $ go version
 - Run the following commands to obtain zkc, all dependencies, and install it:
 
 ```bash
-$ go get -u github.com/Masterminds/glide
+$ go get -u github.com/golang/dep/cmd/dep
 $ git clone https://github.com/companyzero/zkc
 $ cd $GOPATH/src/github.com/companyzero/zkc
-$ glide install
-$ go install $(glide nv)
+$ dep ensure
+$ go install ./tools/... ./zkclient/... ./zkserver/...
 ```
 
 - zkc (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
