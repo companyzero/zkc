@@ -113,7 +113,7 @@ func (z *ZKC) completeDir(at string) string {
 		}
 		at = ef
 		// TODO: check err
-		files, err := filepath.Glob(ef + string(os.PathSeparator) + "*")
+		files, _ := filepath.Glob(ef + string(os.PathSeparator) + "*")
 		c.all = append(c.all, files...)
 		sort.Strings(c.all)
 

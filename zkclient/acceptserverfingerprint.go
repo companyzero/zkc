@@ -101,7 +101,6 @@ func (aw *acceptWindow) Init(w *ttk.Window) {
 	s := fmt.Sprintf("Are you sure you want to continue connecting (yes/no)?")
 	w.AddLabel(ax, ay+y, s)
 	aw.questionInput = w.AddEdit(ax+len(s)+1, ay+y, -2, &aw.question)
-	y++
 }
 
 func (aw *acceptWindow) KeyHandler(w *ttk.Window, k ttk.Key) {

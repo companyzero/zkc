@@ -89,7 +89,6 @@ func (kw *kxWindow) Init(w *ttk.Window) {
 	y++
 	w.AddLabel(ax, ay+y, "Password")
 	kw.passwordInput = w.AddEdit(ax+10, ay+y, -2, &kw.password)
-	y++
 }
 
 func (kw *kxWindow) KeyHandler(w *ttk.Window, k ttk.Key) {

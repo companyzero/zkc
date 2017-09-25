@@ -117,7 +117,6 @@ func (ww *welcomeWindow) Init(w *ttk.Window) {
 
 	y++
 	w.AddLabel(ax, ay+y, "Token is provided by the server administrator, if necessary.")
-	y++
 }
 
 func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {

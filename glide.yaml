@@ -21,3 +21,7 @@ import:
   - curve25519
   - nacl/secretbox
   - scrypt
+testImport:
+- package: github.com/pmezard/go-difflib
+  subpackages:
+  - difflib
