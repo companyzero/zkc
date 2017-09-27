@@ -760,6 +760,7 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 		cs uint64 = 0
 		ms uint64 = 0
 		as uint64 = 0
+		dir bool = false
 	)
 	if z.settings.Debug {
 		z.Dbg(idRPC, "remote properties:")
@@ -807,6 +808,13 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 		case rpc.PropMOTD:
 			// ignore here, handled later
 
+		case rpc.PropDirectory:
+			dir, err = strconv.ParseBool(v.Value)
+			if err != nil {
+				return nil, fmt.Errorf("invalid directory "+
+					"setting: %v", err)
+			}
+
 		default:
 			return nil, fmt.Errorf("unhandled property: %v", v.Key)
 		}
@@ -851,6 +859,15 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 		return nil, fmt.Errorf("message size < chunk size")
 	}
 
+	// directory mode
+	if dir {
+		z.PrintfT(idZKC, "zkserver keeps an identity directory")
+	}
+
+	if delta > 2 {
+		z.PrintfT(idZKC, REDBOLD+"WARNING: client and server are more "+
+			"than 2 seconds apart"+RESET)
+	}
 	// at this point we are going to use tags
 	z.tagStack = tagstack.New(int(td))
 	z.tagCallback = make([]func(), int(td))
