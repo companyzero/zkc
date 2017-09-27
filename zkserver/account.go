@@ -109,23 +109,6 @@ func (z *ZKS) handleIdentityPush(writer chan *RPCWrapper, msg rpc.Message, id [z
 	return nil
 }
 
-func (z *ZKS) handleIdentityPull(writer chan *RPCWrapper, msg rpc.Message, id [zkidentity.IdentitySize]byte) error {
-	reply := RPCWrapper{
-		Message: rpc.Message{
-			Command: rpc.TaggedCmdIdentityPullReply,
-			Tag:     msg.Tag,
-		},
-	}
-	payload := new(rpc.IdentityPullReply)
-	err := z.account.Pull(id)
-	if err != nil {
-		payload.Error = "server error; identity pull failed"
-	}
-	reply.Payload = payload
-	writer <- &reply
-	return nil
-}
-
 func (z *ZKS) handleIdentityFind(writer chan *RPCWrapper, msg rpc.Message, nick string) error {
 	reply := RPCWrapper{
 		Message: rpc.Message{

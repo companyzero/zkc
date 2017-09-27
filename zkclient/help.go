@@ -40,7 +40,6 @@ var (
 	cmdSave          = leader + "save"
 	cmdRestore       = leader + "restore"
 	cmdPush          = leader + "push"
-	cmdPull          = leader + "pull"
 	cmdFind          = leader + "find"
 
 	helpArray = []help{
@@ -226,11 +225,6 @@ var (
 			command:     cmdPush,
 			usage:       cmdPush,
 			description: "publishes identity in server",
-		},
-		{
-			command:     cmdPull,
-			usage:       cmdPull,
-			description: "pulls identity from server",
 		},
 		{
 			command:     cmdFind,
