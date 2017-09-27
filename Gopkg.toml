@@ -1,0 +1,48 @@
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/agl/ed25519"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/companyzero/sntrup4591761"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/companyzero/ttk"
+
+[[constraint]]
+  name = "github.com/davecgh/go-spew"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/davecgh/go-xdr"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/marcopeereboom/goutil"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/marcopeereboom/lockfile"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mitchellh/go-homedir"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/nsf/termbox-go"
+
+[[constraint]]
+  name = "github.com/pmezard/go-difflib"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/vaughan0/go-ini"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"

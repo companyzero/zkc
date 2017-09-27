@@ -1,23 +1,24 @@
 language: go
 go:
-  - 1.7.x
   - 1.8.x
 sudo: false
 install:
-  - go get -v github.com/Masterminds/glide
-  - glide install
+  - go get -v github.com/golang/dep/cmd/dep
+  - dep ensure
   - go get -v github.com/alecthomas/gometalinter
   - gometalinter --install
+  - go install ./tools/... ./zkclient/... ./zkserver/...
 script:
   - export PATH=$PATH:$HOME/gopath/bin
   - export GORACE="halt_on_error=1"
+  - export TESTDIRS=$(go list ./... | grep -v '/vendor/')
   - test -z "$(gometalinter --vendor --disable-all
       --enable=gofmt
       --enable=vet
       --enable=unconvert
       --enable=ineffassign
       --deadline=20m ./... | tee /dev/stderr)"
-  - go test -v -race $(glide novendor)
+  - go test -v -race ${TESTDIRS}
 #after_success:
 #    - go get -v github.com/mattn/goveralls
 #    - goveralls -coverprofile=profile.cov -service=travis-ci
