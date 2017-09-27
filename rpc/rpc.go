@@ -61,8 +61,6 @@ const (
 	TaggedCmdIdentityPushReply   = "identitypushreply"
 	TaggedCmdIdentityFind        = "identityfind"
 	TaggedCmdIdentityFindReply   = "identityfindreply"
-	TaggedCmdIdentityPull        = "identitypull"
-	TaggedCmdIdentityPullReply   = "identitypullreply"
 
 	// misc
 	MessageModeNormal = 0
@@ -272,10 +270,6 @@ type RendezvousPullReply struct {
 }
 
 type IdentityPushReply struct {
-	Error string
-}
-
-type IdentityPullReply struct {
 	Error string
 }
 

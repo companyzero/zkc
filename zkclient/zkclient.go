@@ -1257,26 +1257,6 @@ func (z *ZKC) handleRPC() {
 				return
 			}
 
-		case rpc.TaggedCmdIdentityPullReply:
-			var r rpc.IdentityPullReply
-			_, err = xdr.Unmarshal(br, &r)
-			if err != nil {
-				exitError = fmt.Errorf("unmarshal " +
-					"IdentityPullReply")
-				return
-			}
-			if r.Error != "" {
-				z.PrintfT(0, "pull failed: %v", r.Error)
-			} else {
-				z.PrintfT(0, "identity pulled")
-			}
-			err = z.tagStack.Push(message.Tag)
-			if err != nil {
-				exitError = fmt.Errorf("IdentityPullReply "+
-					"invalid tag: %v", message.Tag)
-				return
-			}
-
 		case rpc.TaggedCmdIdentityFindReply:
 			var r rpc.IdentityFindReply
 			_, err = xdr.Unmarshal(br, &r)
@@ -1480,25 +1460,6 @@ func (z *ZKC) push() error {
 	z.schedulePRPC(true,
 		rpc.Message{
 			Command: rpc.TaggedCmdIdentityPush,
-			Tag:     tag,
-		},
-		rpc.Empty{})
-
-	return nil
-}
-
-func (z *ZKC) pull() error {
-	if !z.isOnline() {
-		return fmt.Errorf("not online")
-	}
-
-	tag, err := z.tagStack.Pop()
-	if err != nil {
-		return fmt.Errorf("could not obtain tag: %v", err)
-	}
-	z.schedulePRPC(true,
-		rpc.Message{
-			Command: rpc.TaggedCmdIdentityPull,
 			Tag:     tag,
 		},
 		rpc.Empty{})

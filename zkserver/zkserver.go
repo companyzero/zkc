@@ -477,12 +477,6 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 				return fmt.Errorf("handleIdentityFind: %v", err)
 			}
 
-		case rpc.TaggedCmdIdentityPull:
-			err = z.handleIdentityPull(sc.writer, message, rid)
-			if err != nil {
-				return fmt.Errorf("handleIdentityPull: %v", err)
-			}
-
 		default:
 			return fmt.Errorf("invalid message: %v", message)
 
