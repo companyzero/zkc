@@ -87,12 +87,12 @@ func New(root string) (*Account, error) {
 	return &a, nil
 }
 
-// AccountDir return the account directory for a give identity.
+// AccountDir return the account directory for a given identity.
 func (a *Account) accountDir(id [zkidentity.IdentitySize]byte) string {
 	return path.Join(a.root, hex.EncodeToString(id[:]))
 }
 
-// AccountFile return the account filename for a give identity.
+// AccountFile return the account filename for a given identity.
 func (a *Account) accountFile(id [zkidentity.IdentitySize]byte,
 	file string) string {
 	return path.Join(a.root, hex.EncodeToString(id[:]), file)
@@ -146,6 +146,117 @@ func (a *Account) Create(pid zkidentity.PublicIdentity, force bool) error {
 	err = os.Mkdir(a.accountFile(pid.Identity, CacheDir), 0700)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("could not create cache directory: %v", err)
+	}
+
+	return nil
+}
+
+func (a *Account) Push(id [zkidentity.IdentitySize]byte) error {
+	accountName := a.accountDir(id)
+	_, err := os.Stat(accountName)
+	if err != nil {
+		return fmt.Errorf("account not found")
+	}
+	user, err := inidb.New(a.accountFile(id, UserIdentityFilename), false, 10)
+	if err != nil {
+		return fmt.Errorf("could not open userdb: %v", err)
+	}
+
+	err = user.Lock()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		user.Unlock()
+	}()
+	err = user.Set("", "listed", "1")
+	if err != nil {
+		return fmt.Errorf("could not list user: %v", err)
+	}
+	err = user.Save()
+	if err != nil {
+		return fmt.Errorf("could not save user: %v", err)
+	}
+
+	return nil
+}
+
+func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
+	a.Lock()
+	fi, err := ioutil.ReadDir(a.root)
+	if err != nil {
+		a.Unlock()
+		return nil, fmt.Errorf("could not find user: %v", err)
+	}
+	for _, v := range fi {
+		dirname := path.Join(a.root, v.Name())
+		user, err := inidb.New(path.Join(dirname, UserIdentityFilename), false, 10)
+		if err != nil {
+			a.Unlock()
+			return nil, fmt.Errorf("could not find user: %v", err)
+		}
+		err = user.Lock()
+		a.Unlock()
+		if err != nil {
+			return nil, fmt.Errorf("could not lock user: %v", err)
+		}
+		listed, err := user.Get("", "listed")
+		if err == nil && listed == "1" {
+			b64, err := user.Get("", "identity")
+			if err != nil {
+				user.Unlock()
+				return nil, fmt.Errorf("could not get user: %v", err)
+			}
+			blob, err := base64.StdEncoding.DecodeString(b64)
+			if err != nil {
+				user.Unlock()
+				return nil, fmt.Errorf("could not decode user: %v", err)
+			}
+			id := new(zkidentity.PublicIdentity)
+			br := bytes.NewReader(blob)
+			_, err = xdr.Unmarshal(br, &id)
+			if err != nil {
+				user.Unlock()
+				return nil, fmt.Errorf("could not unmarshal user: %v", err)
+			}
+			if id.Nick == nick {
+				user.Unlock()
+				return id, nil
+			}
+		}
+		user.Unlock()
+		a.Lock()
+	}
+	a.Unlock()
+
+	return nil, fmt.Errorf("user not found")
+}
+
+func (a *Account) Pull(id [zkidentity.IdentitySize]byte) error {
+	accountName := a.accountDir(id)
+	_, err := os.Stat(accountName)
+	if err != nil {
+		return fmt.Errorf("account not found")
+	}
+	user, err := inidb.New(a.accountFile(id, UserIdentityFilename), false, 10)
+	if err != nil {
+		return fmt.Errorf("could not open userdb: %v", err)
+	}
+
+	err = user.Lock()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		user.Unlock()
+	}()
+	err = user.Del("", "listed")
+	if err != nil {
+		return fmt.Errorf("could not unlist user: %v", err)
+	}
+	err = user.Save()
+	if err != nil {
+		return fmt.Errorf("could not save user: %v", err)
 	}
 
 	return nil

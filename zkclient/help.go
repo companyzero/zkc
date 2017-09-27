@@ -39,6 +39,7 @@ var (
 	cmdAB            = leader + "ab" // alias for addressbook
 	cmdSave          = leader + "save"
 	cmdRestore       = leader + "restore"
+	cmdFind          = leader + "find"
 
 	helpArray = []help{
 		{
@@ -218,6 +219,11 @@ var (
 			command:     cmdRestore,
 			usage:       cmdRestore,
 			description: "Restore conversations from disk",
+		},
+		{
+			command:     cmdFind,
+			usage:       cmdFind + " <nick>",
+			description: "looks up an identity in server",
 		},
 	}
 )

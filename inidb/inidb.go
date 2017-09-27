@@ -48,7 +48,7 @@ type INIDB struct {
 }
 
 // New returns a new INIDB context.  Depth contains the maximum number of files
-// that re retained.  Create indicates if the database should be created if it
+// that are retained.  Create indicates if the database should be created if it
 // doesn't exist. If depth is negative there is no limit.  If the ini file does
 // not exist it returns an error.
 // The inidb package assumes there is only one inidb per directory.  DO NOT

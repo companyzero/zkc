@@ -21,6 +21,7 @@ type Settings struct {
 	Listen            string // listen address and port
 	AllowIdentify     bool   // identify server policy
 	CreatePolicy      string // create account server policy
+	Directory         bool   // whether we keep a directory of identities
 	MOTD              string // filename to message of the day
 	MaxAttachmentSize uint64 // maximum attachment size
 	MaxChunkSize      uint64 // maximum chunk size
@@ -47,6 +48,7 @@ func New() *Settings {
 		Listen:            "127.0.0.1:12345",
 		AllowIdentify:     false,
 		CreatePolicy:      "no",
+		Directory:         false,
 		MOTD:              "~/.zkserver/motd.txt",
 		MaxAttachmentSize: rpc.PropMaxAttachmentSizeDefault,
 		MaxChunkSize:      rpc.PropMaxChunkSizeDefault,
@@ -114,6 +116,12 @@ func (s *Settings) Load(filename string) error {
 			return fmt.Errorf("invalid createpolicy value: %v", cp)
 		}
 		s.CreatePolicy = cp
+	}
+
+	// directory policy
+	err = iniBool(cfg, &s.Directory, "", "directory")
+	if err != nil && err != errIniNotFound {
+		return err
 	}
 
 	// motd
