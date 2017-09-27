@@ -57,8 +57,6 @@ const (
 	TaggedCmdAcknowledge         = "ack"
 	TaggedCmdPing                = "ping"
 	TaggedCmdPong                = "pong"
-	TaggedCmdIdentityPush        = "identitypush"
-	TaggedCmdIdentityPushReply   = "identitypushreply"
 	TaggedCmdIdentityFind        = "identityfind"
 	TaggedCmdIdentityFindReply   = "identityfindreply"
 
@@ -267,10 +265,6 @@ type RendezvousPullReply struct {
 	Error string // set if an error occurred
 	Token string // Rendezvous token that identifies blob
 	Blob  []byte // data reply to previous Rendezvous
-}
-
-type IdentityPushReply struct {
-	Error string
 }
 
 type IdentityFind struct {

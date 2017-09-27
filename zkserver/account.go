@@ -11,7 +11,6 @@ import (
 
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/session"
-	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-xdr/xdr2"
 )
 
@@ -89,23 +88,6 @@ func (z *ZKS) handleAccountCreate(kx *session.KX, ca rpc.CreateAccount) error {
 		return fmt.Errorf("could not write CreateAccountReply")
 	}
 
-	return nil
-}
-
-func (z *ZKS) handleIdentityPush(writer chan *RPCWrapper, msg rpc.Message, id [zkidentity.IdentitySize]byte) error {
-	reply := RPCWrapper{
-		Message: rpc.Message{
-			Command: rpc.TaggedCmdIdentityPushReply,
-			Tag:     msg.Tag,
-		},
-	}
-	payload := new(rpc.IdentityPushReply)
-	err := z.account.Push(id)
-	if err != nil {
-		payload.Error = "server error; identity push failed"
-	}
-	reply.Payload = payload
-	writer <- &reply
 	return nil
 }
 

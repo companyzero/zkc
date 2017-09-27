@@ -305,6 +305,14 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 	}
 	z.Dbg(idS, "handleSession account online: %v", rids)
 
+	// populate identity in directory
+	if z.settings.Directory {
+		err := z.account.Push(rid)
+		if err != nil {
+			z.Dbg(idS, "handleSession: Push(%v) = %v", rids, err)
+		}
+	}
+
 	tagBitmap := make([]bool, tagDepth) // see if there is a duplicate tag
 	go z.sessionWriter(&sc)
 	go z.sessionNtfn(&sc)
@@ -459,12 +467,6 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 			z.T(idS, "handleSession: %v ack tag %v",
 				rids,
 				message.Tag)
-
-		case rpc.TaggedCmdIdentityPush:
-			err = z.handleIdentityPush(sc.writer, message, rid)
-			if err != nil {
-				return fmt.Errorf("handleIdentityPush: %v", err)
-			}
 
 		case rpc.TaggedCmdIdentityFind:
 			var i rpc.IdentityFind

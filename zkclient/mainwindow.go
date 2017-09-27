@@ -686,12 +686,6 @@ func (mw *mainWindow) action(cmd string) error {
 		}
 		return nil
 
-	case cmdPush:
-		if len(args) != 1 {
-			return mw.doUsage(args)
-		}
-		return mw.zkc.push()
-
 	case cmdFind:
 		if len(args) != 2 {
 			return mw.doUsage(args)
