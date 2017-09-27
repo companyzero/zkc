@@ -1237,26 +1237,6 @@ func (z *ZKC) handleRPC() {
 				go f()
 			}
 
-		case rpc.TaggedCmdIdentityPushReply:
-			var r rpc.IdentityPushReply
-			_, err = xdr.Unmarshal(br, &r)
-			if err != nil {
-				exitError = fmt.Errorf("unmarshal " +
-					"IdentityPushReply")
-				return
-			}
-			if r.Error != "" {
-				z.PrintfT(0, "push failed: %v", r.Error)
-			} else {
-				z.PrintfT(0, "identity pushed")
-			}
-			err = z.tagStack.Push(message.Tag)
-			if err != nil {
-				exitError = fmt.Errorf("IdentityPushReply "+
-					"invalid tag: %v", message.Tag)
-				return
-			}
-
 		case rpc.TaggedCmdIdentityFindReply:
 			var r rpc.IdentityFindReply
 			_, err = xdr.Unmarshal(br, &r)
@@ -1448,25 +1428,7 @@ func (z *ZKC) fetch(pin string) error {
 	return nil
 }
 
-func (z *ZKC) push() error {
-	if !z.isOnline() {
-		return fmt.Errorf("not online")
-	}
-
-	tag, err := z.tagStack.Pop()
-	if err != nil {
-		return fmt.Errorf("could not obtain tag: %v", err)
-	}
-	z.schedulePRPC(true,
-		rpc.Message{
-			Command: rpc.TaggedCmdIdentityPush,
-			Tag:     tag,
-		},
-		rpc.Empty{})
-
-	return nil
-}
-
+// find looks up a nickname on the server's identity directory.
 func (z *ZKC) find(nick string) error {
 	if !z.isOnline() {
 		return fmt.Errorf("not online")
