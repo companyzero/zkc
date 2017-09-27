@@ -152,6 +152,10 @@ const (
 	// stamp.  The client shall warn the user if the client is not time
 	// synced.  Clients and proxies really shall run NTP.
 	PropServerTime = "servertime"
+
+	// Directory is a required property. It defines whether the server
+	// keeps a directory of identities.
+	PropDirectory = "directory"
 )
 
 var (

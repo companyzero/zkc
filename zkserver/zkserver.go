@@ -114,6 +114,8 @@ func (z *ZKS) welcome(kx *session.KX) error {
 			properties[k].Value = strconv.FormatInt(time.Now().Unix(), 10)
 		case rpc.PropMOTD:
 			properties[k].Value = string(motd)
+		case rpc.PropDirectory:
+			properties[k].Value = strconv.FormatBool(z.settings.Directory)
 		}
 	}
 
