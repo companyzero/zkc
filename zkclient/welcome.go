@@ -9,6 +9,9 @@ import (
 	"strings"
 
 	"github.com/companyzero/ttk"
+	"github.com/companyzero/zkc/rpc"
+	"github.com/companyzero/zkc/zkidentity"
+	"github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
@@ -136,27 +139,59 @@ func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 		ww.zkc.id.Public.Name = ww.name
 		ww.zkc.id.Public.Nick = ww.nick
 		ww.zkc.serverAddress = ww.server
-		if ww.zkc.serverIdentity == nil {
-			ww.Status(w, true, "remote identity missing")
-			return
-		}
 
 		// dial remote
 		ww.Status(w, false, "Dialing %v", ww.server)
-		kx, cs, err := ww.zkc.preSessionPhase()
+		conn, cs, err := ww.zkc.preSessionPhase()
 		if err != nil {
 			ww.Status(w, true, "Could not dial %v: %v",
 				ww.server, err)
 			return
 		}
 
-		pid := *ww.zkc.serverIdentity
-		ww.Status(w, false, "Connected to: %v %v", pid.Name,
-			pid.Fingerprint())
-		err = ww.zkc.finalizeAccountCreation(kx, cs, &pid,
-			strings.Replace(ww.token, " ", "", -1))
-		if err != nil {
-			ww.Status(w, true, fmt.Sprintf("%v", err))
+		var pid zkidentity.PublicIdentity
+
+		if ww.zkc.serverIdentity == nil {
+			// awful hack to get fingerprint
+
+			// tell remote we want its public identity
+			_, err = xdr.Marshal(conn, rpc.InitialCmdIdentify)
+			if err != nil {
+				ww.Status(w, true,
+					"Connection closed during identify")
+				return
+			}
+
+			// get server identity
+			_, err = xdr.Unmarshal(conn, &pid)
+			if err != nil {
+				ww.Status(w, true,
+					"Could not obtain remote identity")
+				return
+			}
+
+			ww.Status(w, false, "Connected to: %v %v", pid.Name,
+				pid.Fingerprint())
+
+			aw := &acceptWindow{
+				zkc:   ww.zkc,
+				host:  ww.server,
+				conn:  conn,
+				cs:    cs,
+				pid:   &pid,
+				token: strings.Replace(ww.token, " ", "", -1),
+			}
+			ww.zkc.ttkAW = ttk.NewWindow(aw)
+			ttk.Focus(ww.zkc.ttkAW)
+		} else {
+			pid = *ww.zkc.serverIdentity
+			ww.Status(w, false, "Connected to: %v %v", pid.Name,
+				pid.Fingerprint())
+			err := ww.zkc.finalizeAccountCreation(conn, cs, &pid,
+				strings.Replace(ww.token, " ", "", -1))
+			if err != nil {
+				ww.Status(w, true, fmt.Sprintf("%v", err))
+			}
 		}
 	}
 }

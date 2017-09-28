@@ -7,10 +7,10 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/companyzero/ttk"
-	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/tools"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/nsf/termbox-go"
@@ -27,7 +27,7 @@ type acceptWindow struct {
 
 	// parameters
 	host  string
-	kx    *session.KX
+	conn  net.Conn
 	cs    *tls.ConnectionState
 	pid   *zkidentity.PublicIdentity
 	token string
@@ -85,7 +85,7 @@ func (aw *acceptWindow) Init(w *ttk.Window) {
 	})
 
 	w.AddLabel(ax, ay+y, "The authenticity of host %v (%v) can't be "+
-		"established.", aw.host, aw.kx.Conn.RemoteAddr())
+		"established.", aw.host, aw.conn.RemoteAddr())
 	y += 2
 	w.AddLabel(ax, ay+y, "Server name: %v", aw.pid.Name)
 	y++
@@ -112,7 +112,7 @@ func (aw *acceptWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 			return
 		}
 
-		err := aw.zkc.finalizeAccountCreation(aw.kx, aw.cs, aw.pid,
+		err := aw.zkc.finalizeAccountCreation(aw.conn, aw.cs, aw.pid,
 			aw.token)
 		if err != nil {
 			aw.Status(w, true, fmt.Sprintf("%v", err))

@@ -496,30 +496,10 @@ func (z *ZKS) preSession(conn net.Conn) {
 		z.Info(idApp, "connection closed: %v", conn.RemoteAddr())
 	}()
 
-	kx := new(session.KX)
-	kx.Conn = conn
-	kx.MaxMessageSize = uint(z.settings.MaxMsgSize)
-	kx.OurPublicKey = &z.id.Public.Key
-	kx.OurPrivateKey = &z.id.PrivateKey
-	err := kx.Respond()
-	if err != nil {
-		conn.Close()
-		z.Error(idApp, "kx.Respond: %v %v", conn.RemoteAddr(), err)
-		return
-	}
-
 	// pre session state
+	var mode string
 	for {
-		var mode string
-
-		msg, err := kx.Read()
-		if err != nil {
-			z.Dbg(idApp, "could not read mode: %v",
-				conn.RemoteAddr())
-			return
-		}
-		br := bytes.NewReader(msg)
-		_, err = xdr.Unmarshal(br, &mode)
+		_, err := xdr.Unmarshal(conn, &mode)
 		if err != nil {
 			z.Dbg(idApp, "could not unmarshal mode: %v",
 				conn.RemoteAddr())
@@ -527,28 +507,36 @@ func (z *ZKS) preSession(conn net.Conn) {
 		}
 
 		switch mode {
-		case rpc.InitialCmdCreateAccount:
-			z.T(idApp, "InitialCmdCreateAccount: %v", conn.RemoteAddr())
-			var ca rpc.CreateAccount
-			msg, err := kx.Read()
-			if err != nil {
-				z.Error(idApp, "could not read "+
-					"CreateAccount: %v %v",
-					conn.RemoteAddr(),
-					err)
+		case rpc.InitialCmdIdentify:
+			z.T(idApp, "InitialCmdIdentify: %v", conn.RemoteAddr())
+			if !z.settings.AllowIdentify {
+				z.Warn(idApp, "disallowing identify to: %v",
+					conn.RemoteAddr())
 				return
 			}
-			br := bytes.NewReader(msg)
-			_, err = xdr.Unmarshal(br, &ca)
+			_, err = xdr.Marshal(conn, z.id.Public)
 			if err != nil {
-				z.Error(idApp, "could not unmarshal "+
-					"CreateAccount: %v %v",
-					conn.RemoteAddr(),
-					err)
+				z.Error(idApp, "could not marshal "+
+					"z.id.Public: %v",
+					conn.RemoteAddr())
 				return
 			}
 
-			err = z.handleAccountCreate(kx, ca)
+			z.Dbg(idApp, "identifying self to: %v",
+				conn.RemoteAddr())
+
+		case rpc.InitialCmdCreateAccount:
+			z.T(idApp, "InitialCmdCreateAccount: %v", conn.RemoteAddr())
+			var ca rpc.CreateAccount
+			_, err := xdr.Unmarshal(conn, &ca)
+			if err != nil {
+				z.Error(idApp, "could not unmarshal "+
+					"CreateAccount: %v",
+					conn.RemoteAddr())
+				return
+			}
+
+			err = z.handleAccountCreate(conn, ca)
 			if err != nil {
 				z.Error(idApp, "handleAccountCreate: %v %v",
 					conn.RemoteAddr(),
@@ -561,6 +549,19 @@ func (z *ZKS) preSession(conn net.Conn) {
 		case rpc.InitialCmdSession:
 			z.T(idApp, "InitialCmdSession: %v", conn.RemoteAddr())
 			// go full session
+			kx := new(session.KX)
+			kx.Conn = conn
+			kx.MaxMessageSize = uint(z.settings.MaxMsgSize)
+			kx.OurPublicKey = &z.id.Public.Key
+			kx.OurPrivateKey = &z.id.PrivateKey
+			err = kx.Respond()
+			if err != nil {
+				conn.Close()
+				z.Error(idApp, "kx.Respond: %v %v",
+					conn.RemoteAddr(),
+					err)
+				return
+			}
 			remoteID, ok := kx.TheirIdentity().([32]byte)
 			if !ok {
 				z.Error(idApp, "invalid KX identity type %T: %v",
