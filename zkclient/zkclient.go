@@ -756,12 +756,12 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 
 	// deal with server properties
 	var (
-		td int64  = -1
-		pt int64  = -1
-		cs uint64 = 0
-		ms uint64 = 0
-		as uint64 = 0
-		dir bool = false
+		td  int64  = -1
+		pt  int64  = -1
+		cs  uint64 = 0
+		ms  uint64 = 0
+		as  uint64 = 0
+		dir bool   = false
 	)
 	if z.settings.Debug {
 		z.Dbg(idRPC, "remote properties:")
