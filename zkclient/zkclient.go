@@ -864,10 +864,6 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 		z.PrintfT(idZKC, "zkserver keeps an identity directory")
 	}
 
-	if delta > 2 {
-		z.PrintfT(idZKC, REDBOLD+"WARNING: client and server are more "+
-			"than 2 seconds apart"+RESET)
-	}
 	// at this point we are going to use tags
 	z.tagStack = tagstack.New(int(td))
 	z.tagCallback = make([]func(), int(td))
