@@ -152,6 +152,7 @@ const (
 	// Directory is a required property. It defines whether the server
 	// keeps a directory of identities.
 	PropDirectory = "directory"
+	PropDirectoryDefault = false
 )
 
 var (
@@ -181,6 +182,11 @@ var (
 		Value:    "", // int64 unix time
 		Required: true,
 	}
+	DefaultPropDirectory = ServerProperty{
+		Key:      PropDirectory,
+		Value:    strconv.FormatBool(PropDirectoryDefault),
+		Required: true,
+	}
 
 	// optional
 	DefaultPropMOTD = ServerProperty{
@@ -197,6 +203,7 @@ var (
 		DefaultPropMaxChunkSize,
 		DefaultPropMaxMsgSize,
 		DefaultServerTime,
+		DefaultPropDirectory,
 
 		// optional
 		DefaultPropMOTD,
