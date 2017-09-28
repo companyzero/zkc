@@ -101,9 +101,13 @@ func (a *Account) accountFile(id [zkidentity.IdentitySize]byte,
 // createAccount creates all directories and files associated with an account.
 // It returns a logable and a sanitized error.
 func (a *Account) Create(pid zkidentity.PublicIdentity, force bool) error {
+	_, err := a.Find(pid.Nick)
+	if err == nil {
+		return fmt.Errorf("nickname already in use")
+	}
 	// make sure account doesn't exist
 	accountName := a.accountDir(pid.Identity)
-	_, err := os.Stat(accountName)
+	_, err = os.Stat(accountName)
 	if err == nil {
 		if !force {
 			return fmt.Errorf("account already exists: %v",
