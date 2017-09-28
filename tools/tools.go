@@ -29,6 +29,7 @@ type ServerRecord struct {
 	PublicIdentity zkidentity.PublicIdentity
 	Certificate    []byte
 	IPandPort      []byte
+	Directory      bool
 }
 
 type ClientRecord struct {

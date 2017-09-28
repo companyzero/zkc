@@ -14,6 +14,7 @@ import (
 	"os/user"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/companyzero/zkc/inidb"
@@ -122,6 +123,10 @@ func promptUser(cr tools.ServerRecord) error {
 	fmt.Fprintf(os.Stderr, "The authenticity of server '%s' can't be established.\n", cr.IPandPort)
 	fmt.Fprintf(os.Stderr, "Inner fingerprint = %s.\n", cr.PublicIdentity.Fingerprint())
 	fmt.Fprintf(os.Stderr, "Outer fingerprint = %s.\n", tools.Fingerprint(cr.Certificate))
+	if cr.Directory == true {
+		fmt.Fprintf(os.Stderr, "This server keeps a directory of identities.\n")
+		fmt.Fprintf(os.Stderr, "Other users will be able to look up your public identity.\n")
+	}
 	fmt.Fprintf(os.Stderr, "Are you sure you want to import this server (yes/no)? ")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -191,6 +196,10 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 		base64.StdEncoding.EncodeToString(cr.Certificate))
 	if err != nil {
 		return fmt.Errorf("could not insert record servercert")
+	}
+	err = server.Set("", "directory", strconv.FormatBool(cr.Directory))
+	if err != nil {
+		return fmt.Errorf("could not insert record directory")
 	}
 	err = server.Save()
 	if err != nil {

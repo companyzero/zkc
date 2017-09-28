@@ -66,6 +66,24 @@ func fetchServerIPandPort(root string) string {
 	return s.Listen
 }
 
+func fetchServerDirectory(root string) (bool, error) {
+	var err error
+	if root == "" {
+		root, err = zkutil.DefaultServerRootPath()
+		if err != nil {
+			return false, err
+		}
+	}
+	serverConf := path.Join(root, "zkserver.conf")
+	s := settings.New()
+	s.Directory = false
+	err = s.Load(serverConf)
+	if err != nil {
+		return false, err
+	}
+	return s.Directory, nil
+}
+
 // fetchServerRecord() fetches a server record residing in 'root', if
 // specified, or from zkserver's default root directory.
 func fetchServerRecord(root, ipAndPort string) (*tools.ServerRecord, error) {
@@ -85,10 +103,16 @@ func fetchServerRecord(root, ipAndPort string) (*tools.ServerRecord, error) {
 				"on the command line (option -i)")
 		}
 	}
+	directory, err := fetchServerDirectory(root)
+	if err != nil {
+		return nil, err
+	}
+
 	pr := tools.ServerRecord{
 		PublicIdentity: fi.Public,
 		Certificate:    cert.Certificate[0],
 		IPandPort:      []byte(ipAndPort),
+		Directory:      directory,
 	}
 	return &pr, nil
 }
