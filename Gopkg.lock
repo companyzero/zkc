@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/companyzero/ttk"
   packages = ["."]
-  revision = "fcf641c1929e4c660af6e5579aabc6334f07ca5d"
+  revision = "b7b38a8596eec6f0ca13cec2c1e015f3ab3685d1"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -77,7 +77,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["curve25519","nacl/secretbox","pbkdf2","poly1305","salsa20/salsa","scrypt"]
-  revision = "847319b7fc94cab682988f93da778204da164588"
+  revision = "c84b36c635ad003a10f0c755dff5685ceef18c71"
 
 [solve-meta]
   analyzer-name = "dep"
