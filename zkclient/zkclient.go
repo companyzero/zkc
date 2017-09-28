@@ -573,6 +573,7 @@ type ZKC struct {
 	chunkSize       uint64   // max chunk size, provided by server
 	msgSize         uint     // max message size, provided by server
 	attachmentSize  uint64   // max attachment size, provided by server
+	directory       bool     // whether the server keeps an identity. directory
 
 	// new rpc writer
 	done   chan struct{}    // shut it down
@@ -860,8 +861,8 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 	}
 
 	// directory mode
-	if dir {
-		z.PrintfT(idZKC, "zkserver keeps an identity directory")
+	if dir && !z.directory {
+		return nil, fmt.Errorf("directory mode changed, refusing to connect")
 	}
 
 	// at this point we are going to use tags
@@ -1337,6 +1338,14 @@ func (z *ZKC) parseMyServer(server *inidb.INIDB) error {
 	z.cert, err = base64.StdEncoding.DecodeString(pc64)
 	if err != nil {
 		return fmt.Errorf("could not decode servercert")
+	}
+	dir, err := server.Get("", "directory")
+	if err != nil {
+		return fmt.Errorf("could not obtain server's directory record")
+	}
+	z.directory, err = strconv.ParseBool(dir)
+	if err != nil {
+		return fmt.Errorf("could not parse server's directory record")
 	}
 
 	return nil
