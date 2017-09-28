@@ -573,7 +573,6 @@ type ZKC struct {
 	chunkSize       uint64   // max chunk size, provided by server
 	msgSize         uint     // max message size, provided by server
 	attachmentSize  uint64   // max attachment size, provided by server
-	directory       bool     // whether the server keeps an identity. directory
 
 	// new rpc writer
 	done   chan struct{}    // shut it down
@@ -660,7 +659,7 @@ func (z *ZKC) saveServerRecord(pid *zkidentity.PublicIdentity,
 	return nil
 }
 
-func (z *ZKC) preSessionPhase() (*session.KX, *tls.ConnectionState, error) {
+func (z *ZKC) preSessionPhase() (net.Conn, *tls.ConnectionState, error) {
 	if z.serverAddress == "" {
 		return nil, nil, fmt.Errorf("invalid server address")
 	}
@@ -679,7 +678,21 @@ func (z *ZKC) preSessionPhase() (*session.KX, *tls.ConnectionState, error) {
 		return nil, nil, fmt.Errorf("unexpected certificate chain")
 	}
 
-	// kx with server and use a default msgSize
+	return conn, &cs, nil
+}
+
+func (z *ZKC) sessionPhase(conn net.Conn) (*session.KX, error) {
+	if z.id == nil || z.serverIdentity == nil {
+		return nil, fmt.Errorf("can not go full session prior to dial")
+	}
+
+	// tell remote we want to go full session
+	_, err := xdr.Marshal(conn, rpc.InitialCmdSession)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal session command")
+	}
+
+	// session with server and use a default msgSize
 	kx := new(session.KX)
 	kx.Conn = conn
 	kx.MaxMessageSize = z.msgSize
@@ -689,28 +702,10 @@ func (z *ZKC) preSessionPhase() (*session.KX, *tls.ConnectionState, error) {
 	err = kx.Initiate()
 	if err != nil {
 		conn.Close()
-		return nil, nil, fmt.Errorf("could not complete key exchange: %v", err)
+		return nil, fmt.Errorf("could not complete key exchange: %v", err)
 	}
 
-	return kx, &cs, nil
-}
-
-func (z *ZKC) sessionPhase(kx *session.KX) error {
-	if z.id == nil || z.serverIdentity == nil {
-		return fmt.Errorf("can not go full session prior to dial")
-	}
-
-	var bb bytes.Buffer
-	_, err := xdr.Marshal(&bb, rpc.InitialCmdSession)
-	if err != nil {
-		return fmt.Errorf("could not marshal session command")
-	}
-	err = kx.Write(bb.Bytes())
-	if err != nil {
-		return fmt.Errorf("could not write session command")
-	}
-
-	return nil
+	return kx, nil
 }
 
 // lock must be held
@@ -861,8 +856,8 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 	}
 
 	// directory mode
-	if dir && !z.directory {
-		return nil, fmt.Errorf("directory mode changed, refusing to connect")
+	if dir {
+		z.PrintfT(idZKC, "zkserver keeps an identity directory")
 	}
 
 	// at this point we are going to use tags
@@ -887,7 +882,7 @@ func (z *ZKC) goOnline() (*rpc.Welcome, error) {
 		return nil, fmt.Errorf("already online")
 	}
 
-	kx, cs, err := z.preSessionPhase()
+	conn, cs, err := z.preSessionPhase()
 	if err != nil {
 		return nil, err
 	}
@@ -898,7 +893,7 @@ func (z *ZKC) goOnline() (*rpc.Welcome, error) {
 		return nil, errCert
 	}
 
-	err = z.sessionPhase(kx)
+	kx, err := z.sessionPhase(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -1339,14 +1334,6 @@ func (z *ZKC) parseMyServer(server *inidb.INIDB) error {
 	if err != nil {
 		return fmt.Errorf("could not decode servercert")
 	}
-	dir, err := server.Get("", "directory")
-	if err != nil {
-		return fmt.Errorf("could not obtain server's directory record")
-	}
-	z.directory, err = strconv.ParseBool(dir)
-	if err != nil {
-		return fmt.Errorf("could not parse server's directory record")
-	}
 
 	return nil
 }
@@ -1618,15 +1605,10 @@ func (z *ZKC) loadGroupchat() error {
 	return nil
 }
 
-func (z *ZKC) finalizeAccountCreation(kx *session.KX, cs *tls.ConnectionState,
+func (z *ZKC) finalizeAccountCreation(conn net.Conn, cs *tls.ConnectionState,
 	pid *zkidentity.PublicIdentity, token string) error {
 	// tell server we want to create an account
-	var bb bytes.Buffer
-	_, err := xdr.Marshal(&bb, rpc.InitialCmdCreateAccount)
-	if err != nil {
-		return fmt.Errorf("Failed to marshal InitialCmdCreateAccount")
-	}
-	err = kx.Write(bb.Bytes())
+	_, err := xdr.Marshal(conn, rpc.InitialCmdCreateAccount)
 	if err != nil {
 		return fmt.Errorf("Connection closed during create account")
 	}
@@ -1642,12 +1624,7 @@ func (z *ZKC) finalizeAccountCreation(kx *session.KX, cs *tls.ConnectionState,
 		PublicIdentity: z.id.Public,
 		Token:          token,
 	}
-	bb.Reset()
-	_, err = xdr.Marshal(&bb, ca)
-	if err != nil {
-		return fmt.Errorf("Failed to marshal CreateAccount")
-	}
-	err = kx.Write(bb.Bytes())
+	_, err = xdr.Marshal(conn, ca)
 	if err != nil {
 		return fmt.Errorf("Connection closed while sending create " +
 			"account")
@@ -1655,14 +1632,9 @@ func (z *ZKC) finalizeAccountCreation(kx *session.KX, cs *tls.ConnectionState,
 
 	// obtain answer
 	var car rpc.CreateAccountReply
-	msg, err := kx.Read()
+	_, err = xdr.Unmarshal(conn, &car)
 	if err != nil {
 		return fmt.Errorf("Could not obtain create account reply")
-	}
-	br := bytes.NewReader(msg)
-	_, err = xdr.Unmarshal(br, &car)
-	if err != nil {
-		return fmt.Errorf("Could not unmarshal create account reply")
 	}
 	if car.Error != "" {
 		return fmt.Errorf("Could not create account: %v", car.Error)
@@ -1673,7 +1645,7 @@ func (z *ZKC) finalizeAccountCreation(kx *session.KX, cs *tls.ConnectionState,
 	z.cert = cs.PeerCertificates[0].Raw
 
 	// tell remote we want to go full session
-	err = z.sessionPhase(kx)
+	kx, err := z.sessionPhase(conn)
 	if err != nil {
 		return err
 	}
