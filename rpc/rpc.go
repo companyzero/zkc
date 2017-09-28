@@ -151,7 +151,7 @@ const (
 
 	// Directory is a required property. It defines whether the server
 	// keeps a directory of identities.
-	PropDirectory = "directory"
+	PropDirectory        = "directory"
 	PropDirectoryDefault = false
 )
 
