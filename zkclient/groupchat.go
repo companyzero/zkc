@@ -156,7 +156,7 @@ func (z *ZKC) gcInvite(args []string) error {
 	}
 
 	// keep track of invites
-	gi, err := z.inviteDBAdd(args[2], id.Identity, "come join me!")
+	gi, err := z.inviteDBAdd(id.Identity, "come join me!", g)
 	if err != nil {
 		return fmt.Errorf("could not invite %v to group chat %v: %v",
 			args[3], args[2], err)

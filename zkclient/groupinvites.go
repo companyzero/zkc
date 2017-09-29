@@ -115,9 +115,7 @@ func (z *ZKC) listInvitesJoins(db *inidb.INIDB, args []string) {
 
 // inviteDBAdd adds an identity to the invites database and returns a token
 // that can be used to validate a join request.
-func (z *ZKC) inviteDBAdd(group string,
-	id [zkidentity.IdentitySize]byte,
-	description string) (*rpc.GroupInvite, error) {
+func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, group rpc.GroupList) (*rpc.GroupInvite, error) {
 
 	ids := hex.EncodeToString(id[:])
 
@@ -134,7 +132,7 @@ func (z *ZKC) inviteDBAdd(group string,
 	// not much error recovery to do on unlock
 	defer idb.Unlock()
 
-	_, err = idb.Get(group, ids)
+	_, err = idb.Get(group.Name, ids)
 	if err == nil {
 		// if invite is expired create a new one
 		return nil, fmt.Errorf("already invited, XXX add expiration check here")
@@ -163,12 +161,12 @@ func (z *ZKC) inviteDBAdd(group string,
 	}
 
 	// always create table since it is a no-op if it exists
-	idb.NewTable(group)
+	idb.NewTable(group.Name)
 
 	// add invite to database
 	var b bytes.Buffer
 	gi := rpc.GroupInvite{
-		Name:        group,
+		Name:        group.Name,
 		Token:       token,
 		Description: description,
 		Expires:     time.Now().Add(24 * time.Hour).Unix(),
@@ -177,7 +175,7 @@ func (z *ZKC) inviteDBAdd(group string,
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal invite record")
 	}
-	err = idb.Set(group, ids, base64.StdEncoding.EncodeToString(b.Bytes()))
+	err = idb.Set(group.Name, ids, base64.StdEncoding.EncodeToString(b.Bytes()))
 	if err != nil {
 		return nil, fmt.Errorf("could not set invite record: %v", err)
 	}
