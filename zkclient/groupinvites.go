@@ -119,6 +119,15 @@ func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, 
 
 	ids := hex.EncodeToString(id[:])
 
+	plist := make([]string, len(group.Members))
+	for i := range group.Members {
+		id, err := z.loadIdentity(group.Members[i])
+		if err != nil {
+			return nil, fmt.Errorf("could not establish list of participants")
+		}
+		plist[i] = id.Nick
+	}
+
 	// open db
 	idb, err := inidb.New(path.Join(z.settings.Root, invitesFilename),
 		true, 10)
@@ -167,7 +176,7 @@ func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, 
 	var b bytes.Buffer
 	gi := rpc.GroupInvite{
 		Name:        group.Name,
-		Members:     group.Members,
+		Members:     plist,
 		Token:       token,
 		Description: description,
 		Expires:     time.Now().Add(24 * time.Hour).Unix(),
