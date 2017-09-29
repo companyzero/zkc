@@ -167,6 +167,7 @@ func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, 
 	var b bytes.Buffer
 	gi := rpc.GroupInvite{
 		Name:        group.Name,
+		Members:     group.Members,
 		Token:       token,
 		Description: description,
 		Expires:     time.Now().Add(24 * time.Hour).Unix(),
