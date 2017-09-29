@@ -345,11 +345,11 @@ type JanitorMessage struct {
 // XXX Note that there is no explicit way to prohibit sender being admin.
 // XXX This needs some more thought.
 type GroupInvite struct {
-	Name        string // group name
-	Members     [][zkidentity.IdentitySize]byte
-	Token       uint64 // invite token
-	Description string // group description
-	Expires     int64  // unix time when this invite expires
+	Name        string   // group name
+	Members     []string // list of participants' nicknames
+	Token       uint64   // invite token
+	Description string   // group description
+	Expires     int64    // unix time when this invite expires
 }
 
 // GroupJoin
