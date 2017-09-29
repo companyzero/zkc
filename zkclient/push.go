@@ -585,6 +585,15 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 		z.settings.PmColor+id.Nick+RESET,
 		z.settings.GcColor+gi.Name+RESET,
 		gi.Description)
+	z.PrintfT(0, "group chat participants:")
+	for i := range gi.Members {
+		id, err := z.ab.FindNick(gi.Members[i])
+		if  err != nil {
+			z.PrintfT(0, "%v (?)", gi.Members[i])
+		} else {
+			z.PrintfT(0, "%v (%v)", gi.Members[i], id.Fingerprint())
+		}
+	}
 	z.PrintfT(0, "To accept type /gc join %v %v",
 		gi.Name, gi.Token)
 
