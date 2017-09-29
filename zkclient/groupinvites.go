@@ -122,10 +122,9 @@ func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, 
 	plist := make([]string, len(group.Members))
 	for i := range group.Members {
 		id, err := z.loadIdentity(group.Members[i])
-		if err != nil {
-			return nil, fmt.Errorf("could not establish list of participants")
+		if err == nil {
+			plist[i] = id.Nick
 		}
-		plist[i] = id.Nick
 	}
 
 	// open db

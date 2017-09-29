@@ -590,6 +590,7 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 		id, err := z.ab.FindNick(gi.Members[i])
 		if  err != nil {
 			z.PrintfT(0, "%v (?)", gi.Members[i])
+			z.find(gi.Members[i])
 		} else {
 			z.PrintfT(0, "%v (%v)", gi.Members[i], id.Fingerprint())
 		}
