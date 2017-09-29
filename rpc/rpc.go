@@ -346,6 +346,7 @@ type JanitorMessage struct {
 // XXX This needs some more thought.
 type GroupInvite struct {
 	Name        string // group name
+	Members     [][zkidentity.IdentitySize]byte
 	Token       uint64 // invite token
 	Description string // group description
 	Expires     int64  // unix time when this invite expires
