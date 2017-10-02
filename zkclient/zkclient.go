@@ -998,7 +998,7 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
 
 	idkx := rpc.IdentityKX{
 		Identity: z.id.Public,
-		KX: *kxRatchet,
+		KX:       *kxRatchet,
 	}
 	idkxXDR := &bytes.Buffer{}
 	_, err = xdr.Marshal(idkxXDR, idkx)

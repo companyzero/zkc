@@ -694,7 +694,7 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 	z.PrintfT(0, "group chat participants:")
 	for i := range gi.Members {
 		id, err := z.ab.FindNick(gi.Members[i])
-		if  err != nil {
+		if err != nil {
 			z.PrintfT(0, "%v (?)", gi.Members[i])
 			z.find(gi.Members[i])
 		} else {
