@@ -279,6 +279,108 @@ func (z *ZKC) step2IDKX(msg rpc.Message, p rpc.Push) error {
 	return fmt.Errorf("kx step 2 not complete with: %v", nick)
 }
 
+func (z *ZKC) step2IDKX2(msg rpc.Message, p rpc.Push) error {
+	if p.Payload == nil {
+		return fmt.Errorf("server sent a message without a payload")
+	}
+	if len(p.Payload) < sntrup4591761.CiphertextSize {
+		return fmt.Errorf("server sent a short payload")
+	}
+
+	z.Log(0, "[step2IDKX]: payload = %v", p.Payload)
+
+	c := new([sntrup4591761.CiphertextSize]byte)
+	copy(c[:], p.Payload[:])
+	k, ok := sntrup4591761.Decapsulate(c, &z.id.PrivateKey)
+	if ok != 1 {
+		return fmt.Errorf("could not decap key")
+	}
+
+	nonce, encrypted, err := blobshare.UnpackNonce(p.Payload[sntrup4591761.CiphertextSize:])
+	if err != nil {
+		return fmt.Errorf("could not unpack IdentityKX")
+	}
+
+	decrypted, err := blobshare.Decrypt(k, nonce, encrypted)
+	if err != nil {
+		return fmt.Errorf("could not decrypt half ratchet: %v", err)
+	}
+
+	var idkx rpc.IdentityKX
+	br := bytes.NewReader(decrypted)
+	_, err = xdr.Unmarshal(br, &idkx)
+	if err != nil {
+		return fmt.Errorf("could not unmarshal IdentityKX")
+	}
+
+	if bytes.Equal(idkx.Identity.Identity[:], z.id.Public.Identity[:]) {
+		return fmt.Errorf("can't kx with self")
+	}
+
+	// create a new ratchet from idkx
+	r := ratchet.New(rand.Reader)
+	r.MyPrivateKey = &z.id.PrivateKey
+	r.MySigningPublic = &z.id.Public.SigKey
+	r.TheirIdentityPublic = &idkx.Identity.Identity
+	r.TheirSigningPublic = &idkx.Identity.SigKey
+	r.TheirPublicKey = &idkx.Identity.Key
+
+	kxRatchet := new(ratchet.KeyExchange)
+	err = r.FillKeyExchange(kxRatchet)
+	if err != nil {
+		return fmt.Errorf("could not setup ratchet kx: %v", err)
+	}
+
+	// finalize ratchet
+	err = r.CompleteKeyExchange(&idkx.KX, false)
+	if err != nil {
+		return fmt.Errorf("could not complete kx: %v", err)
+	}
+
+	// save identity and ratchet
+	err = z.saveIdentity(idkx.Identity)
+	if err != nil {
+		return fmt.Errorf("could not save identity %v", err)
+	}
+
+	z.ratchetMtx.Lock()
+	err = z.updateRatchet(r, false)
+	if err != nil {
+		z.ratchetMtx.Unlock()
+		return fmt.Errorf("could not save ratchet kx %v", err)
+	}
+	z.ratchetMtx.Unlock()
+
+	// send kxRatchet to the other end
+	kx := rpc.KX{
+		KX: *kxRatchet,
+	}
+	kxXDR := &bytes.Buffer{}
+	_, err = xdr.Marshal(kxXDR, kx)
+	if err != nil {
+		return fmt.Errorf("could not marshal KX")
+	}
+
+	// encrypt kx
+	encrypted, nonce, err = blobshare.Encrypt(kxXDR.Bytes(), k)
+	if err != nil {
+		return fmt.Errorf("could not encrypt KX %v", err)
+	}
+
+	// send cache command, step 3 of idkx
+	err = z.cache(idkx.Identity.Identity, blobshare.PackNonce(nonce, encrypted))
+	if err != nil {
+		return fmt.Errorf("could not send KX %v", err)
+	}
+
+	z.addressBookAdd(idkx.Identity)
+	z.printKX(&idkx.Identity)
+
+	z.Dbg(idZKC, "step 2 (push) idkx complete %v", hex.EncodeToString(idkx.Identity.Identity[:]))
+
+	return nil
+}
+
 func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 	// see if identity is valid
 	empty := make([]byte, 32)
@@ -290,7 +392,11 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 	if !z.identityExists(p.From) {
 		// step 2 of idkx
 		z.Dbg(idZKC, "step 2 (push) idkx")
-		return z.step2IDKX(msg, p)
+		if z.directory {
+			return z.step2IDKX2(msg, p)
+		} else {
+			return z.step2IDKX(msg, p)
+		}
 	}
 
 	// see if ratchet exists
