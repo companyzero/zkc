@@ -580,6 +580,7 @@ type ZKC struct {
 	chunkSize       uint64   // max chunk size, provided by server
 	msgSize         uint     // max message size, provided by server
 	attachmentSize  uint64   // max attachment size, provided by server
+	directory       bool     // whether the server is in directory mode
 
 	// new rpc writer
 	done   chan struct{}    // shut it down
@@ -875,6 +876,7 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 	z.chunkSize = cs
 	z.msgSize = uint(ms)
 	z.attachmentSize = as
+	z.directory = dir
 
 	return &wmsg, nil
 }
@@ -1509,6 +1511,9 @@ var pendingIdentities map[string]*time.Time
 func (z *ZKC) find(nick string) error {
 	if !z.isOnline() {
 		return fmt.Errorf("not online")
+	}
+	if !z.directory {
+		return fmt.Errorf("directory not supported")
 	}
 	if pendingIdentities == nil {
 		pendingIdentities = make(map[string]*time.Time)
