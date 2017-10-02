@@ -603,9 +603,9 @@ type ZKC struct {
 	// locks itself
 	ab *addressbook.AddressBook
 
-	ratchetMtx sync.Mutex
+	ratchetMtx             sync.Mutex
 	pendingIdentitiesMutex sync.Mutex
-	pendingIdentities map[string]*time.Time
+	pendingIdentities      map[string]*time.Time
 }
 
 const (
