@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/companyzero/sntrup4591761"
 	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/inidb"
 	"github.com/companyzero/zkc/ratchet"
@@ -296,7 +297,16 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 	if !z.ratchetExists(p.From) {
 		// step 3 of idkx
 		z.Dbg(idZKC, "step 3 (push) idkx")
-		return z.step3IDKX(msg, p)
+		err := z.step3IDKX(msg, p)
+		if err != nil {
+			return err
+		}
+		id, err := z.loadIdentity(p.From)
+		if err != nil {
+			return err
+		}
+		z.query(id.Nick)
+		return nil
 	}
 
 	//

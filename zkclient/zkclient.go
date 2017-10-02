@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
@@ -24,9 +25,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/companyzero/sntrup4591761"
 	"github.com/companyzero/ttk"
+	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/debug"
 	"github.com/companyzero/zkc/inidb"
+	"github.com/companyzero/zkc/ratchet"
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/session"
 	"github.com/companyzero/zkc/tagstack"
@@ -431,8 +435,11 @@ func (z *ZKC) query(nick string) {
 		// nick not found, try gc
 		_, win, err = z.groupConversation(nick)
 		if err != nil {
-			z.PrintfT(-1, "query: %v",
-				err)
+			// gc not found, find nick
+			err = z.find(nick)
+			if err != nil {
+				z.PrintfT(-1, "query: %v", err)
+			}
 			return
 		}
 	}
@@ -965,6 +972,81 @@ func (z *ZKC) PrintIdentity(id zkidentity.PublicIdentity) {
 		base64.StdEncoding.EncodeToString(id.Identity[:]))
 }
 
+func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
+	z.Log(0, "initiating kx with %v", id)
+
+	nc, nk, err := sntrup4591761.Encapsulate(rand.Reader, &id.Key)
+	if err != nil {
+		z.Log(0, "could not encapsulate key: %v", err)
+		return
+	}
+
+	r := ratchet.New(rand.Reader)
+	r.MyPrivateKey = &z.id.PrivateKey
+	r.MySigningPublic = &z.id.Public.SigKey
+	r.TheirIdentityPublic = &id.Identity
+	r.TheirPublicKey = &id.Key
+
+	kxRatchet := new(ratchet.KeyExchange)
+	err = r.FillKeyExchange(kxRatchet)
+	if err != nil {
+		z.Log(0, "could not setup ratchet key: %v", err)
+		return
+	}
+
+	idkx := rpc.IdentityKX{
+		Identity: z.id.Public,
+		KX: *kxRatchet,
+	}
+	idkxXDR := &bytes.Buffer{}
+	_, err = xdr.Marshal(idkxXDR, idkx)
+	if err != nil {
+		z.Log(0, "could not marshal identityKX: %v", err)
+	}
+
+	encrypted, nonce, err := blobshare.Encrypt(idkxXDR.Bytes(), nk)
+	if err != nil {
+		z.Log(0, "could not encrypt IdentityKX: %v", err)
+		return
+	}
+
+	packed := blobshare.PackNonce(nonce, encrypted)
+	payload := make([]byte, 0)
+	payload = append(payload, nc[:]...)
+	payload = append(payload, packed...)
+
+	z.Log(0, "[InitiateKX]: nk = %v", nk)
+	z.Log(0, "[InitiateKX]: nc = %v", nc)
+
+	err = z.cache(id.Identity, payload)
+	if err != nil {
+		z.Log(0, "could not send IdentityKX: %v", err)
+		return
+	}
+
+	err = z.saveIdentity(id)
+	if err != nil {
+		z.Log(0, "could not save identity: %v", err)
+		return
+	}
+
+	err = z.saveKey(nk)
+	if err != nil {
+		z.Log(0, "could not save key: %v", err)
+		return
+	}
+
+	z.ratchetMtx.Lock()
+	err = z.updateRatchet(r, true)
+	if err != nil {
+		z.ratchetMtx.Unlock()
+		z.Log(0, "could not save half ratchet: %v", err)
+		return
+	}
+	z.ratchetMtx.Unlock()
+	z.Log(0, "ok")
+}
+
 // handleRPC deals with all incoming RPC commands.  It shall be called as a go
 // routine.
 func (z *ZKC) handleRPC() {
@@ -1240,7 +1322,7 @@ func (z *ZKC) handleRPC() {
 			if r.Error != "" {
 				z.PrintfT(0, "find failed: %v", r.Error)
 			} else {
-				z.PrintIdentity(r.Identity)
+				z.step1IDKX(r.Identity)
 			}
 			err = z.tagStack.Push(message.Tag)
 			if err != nil {
@@ -1420,16 +1502,30 @@ func (z *ZKC) fetch(pin string) error {
 	return nil
 }
 
+var pendingIdentitiesMutex sync.Mutex
+var pendingIdentities map[string]*time.Time
+
 // find looks up a nickname on the server's identity directory.
 func (z *ZKC) find(nick string) error {
 	if !z.isOnline() {
 		return fmt.Errorf("not online")
+	}
+	if pendingIdentities == nil {
+		pendingIdentities = make(map[string]*time.Time)
 	}
 
 	tag, err := z.tagStack.Pop()
 	if err != nil {
 		return fmt.Errorf("could not obtain tag: %v", err)
 	}
+
+	pendingIdentitiesMutex.Lock()
+	defer pendingIdentitiesMutex.Unlock()
+
+	if pendingIdentities[nick] != nil {
+		return fmt.Errorf("lookup already in progress")
+	}
+
 	z.schedulePRPC(true,
 		rpc.Message{
 			Command: rpc.TaggedCmdIdentityFind,
@@ -1438,6 +1534,10 @@ func (z *ZKC) find(nick string) error {
 		rpc.IdentityFind{
 			Nick: nick,
 		})
+
+	t := time.Now()
+	pendingIdentities[nick] = &t
+
 	return nil
 }
 
