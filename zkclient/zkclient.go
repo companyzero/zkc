@@ -604,6 +604,8 @@ type ZKC struct {
 	ab *addressbook.AddressBook
 
 	ratchetMtx sync.Mutex
+	pendingIdentitiesMutex sync.Mutex
+	pendingIdentities map[string]*time.Time
 }
 
 const (
@@ -1504,9 +1506,6 @@ func (z *ZKC) fetch(pin string) error {
 	return nil
 }
 
-var pendingIdentitiesMutex sync.Mutex
-var pendingIdentities map[string]*time.Time
-
 // find looks up a nickname on the server's identity directory.
 func (z *ZKC) find(nick string) error {
 	if !z.isOnline() {
@@ -1515,8 +1514,8 @@ func (z *ZKC) find(nick string) error {
 	if !z.directory {
 		return fmt.Errorf("directory not supported")
 	}
-	if pendingIdentities == nil {
-		pendingIdentities = make(map[string]*time.Time)
+	if z.pendingIdentities == nil {
+		z.pendingIdentities = make(map[string]*time.Time)
 	}
 
 	tag, err := z.tagStack.Pop()
@@ -1524,10 +1523,10 @@ func (z *ZKC) find(nick string) error {
 		return fmt.Errorf("could not obtain tag: %v", err)
 	}
 
-	pendingIdentitiesMutex.Lock()
-	defer pendingIdentitiesMutex.Unlock()
+	z.pendingIdentitiesMutex.Lock()
+	defer z.pendingIdentitiesMutex.Unlock()
 
-	if pendingIdentities[nick] != nil {
+	if z.pendingIdentities[nick] != nil {
 		return fmt.Errorf("lookup already in progress")
 	}
 
@@ -1541,7 +1540,7 @@ func (z *ZKC) find(nick string) error {
 		})
 
 	t := time.Now()
-	pendingIdentities[nick] = &t
+	z.pendingIdentities[nick] = &t
 
 	return nil
 }
