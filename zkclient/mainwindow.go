@@ -620,8 +620,7 @@ func (mw *mainWindow) action(cmd string) error {
 		return nil
 
 	case cmdRestore:
-		restoreConversations(mw.zkc)
-		return nil
+		return restoreConversations(mw.zkc)
 
 	case cmdQ, cmdQuery:
 		if len(args) != 2 {

@@ -373,7 +373,11 @@ func (z *ZKC) step2IDKX2(msg rpc.Message, p rpc.Push) error {
 		return fmt.Errorf("could not send KX %v", err)
 	}
 
-	z.addressBookAdd(idkx.Identity)
+	err = z.addressBookAdd(idkx.Identity)
+	if err != nil {
+		return fmt.Errorf("could not add to address book: %v", err)
+	}
+
 	z.printKX(&idkx.Identity)
 
 	z.Dbg(idZKC, "step 2 (push) idkx complete %v", hex.EncodeToString(idkx.Identity.Identity[:]))
@@ -696,7 +700,7 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 		id, err := z.ab.FindNick(gi.Members[i])
 		if err != nil {
 			z.PrintfT(0, "%v (?)", gi.Members[i])
-			z.find(gi.Members[i])
+			err = z.find(gi.Members[i])
 		} else {
 			z.PrintfT(0, "%v (%v)", gi.Members[i], id.Fingerprint())
 		}
@@ -704,7 +708,7 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 	z.PrintfT(0, "To accept type /gc join %v %v",
 		gi.Name, gi.Token)
 
-	return nil
+	return err
 }
 
 func (z *ZKC) handleGroupJoin(msg rpc.Message, p rpc.Push,
