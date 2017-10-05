@@ -1475,11 +1475,12 @@ func (z *ZKC) welcomeUser(welcome *rpc.Welcome) error {
 		break
 	}
 
+	var err error
 	if len(z.conversation) == 1 {
-		restoreConversations(z)
+		err = restoreConversations(z)
 	}
 
-	return nil
+	return err
 }
 
 // fetch tries to obtain a Rendezvous blob using provided pin.
