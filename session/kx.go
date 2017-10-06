@@ -243,7 +243,9 @@ func recvEncryptedIdentity(kx *KX, ek *[32]byte) (*[sntrup4591761.PublicKeySize]
 // c1, c2, c3, c4: NTRU Prime ciphertexts corresponding to k1, k2, k3, k4.
 // From the perspective of the initiator, the process unfolds as follows:
 func (kx *KX) Initiate() error {
-	regenerateEphemeral()
+	if err := regenerateEphemeral(); err != nil {
+		return err
+	}
 	defer zeroEphemeral()
 
 	D(0, "[session.Initiate] ephemeral public:\n%x", ephemeralPublic)
