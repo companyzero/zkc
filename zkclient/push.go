@@ -699,8 +699,13 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 	for i := range gi.Members {
 		id, err := z.ab.FindNick(gi.Members[i])
 		if err != nil {
-			z.PrintfT(0, "%v (?)", gi.Members[i])
+			z.PrintfT(0, "handleGroupInvite: "+
+				"FindNick: %v (?): %v", gi.Members[i], err)
 			err = z.find(gi.Members[i])
+			if err != nil {
+				z.PrintfT(0, "handleGroupInvite: "+
+					"find: %v (?): %v", gi.Members[i], err)
+			}
 		} else {
 			z.PrintfT(0, "%v (%v)", gi.Members[i], id.Fingerprint())
 		}
@@ -708,7 +713,7 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 	z.PrintfT(0, "To accept type /gc join %v %v",
 		gi.Name, gi.Token)
 
-	return err
+	return nil
 }
 
 func (z *ZKC) handleGroupJoin(msg rpc.Message, p rpc.Push,
