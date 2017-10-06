@@ -97,7 +97,7 @@ type Message struct {
 type Empty struct{}
 
 const (
-	ProtocolVersion = 6
+	ProtocolVersion = 7
 )
 
 // Welcome is written immediately following a key exchange.  This command
@@ -281,6 +281,7 @@ type IdentityFind struct {
 }
 
 type IdentityFindReply struct {
+	Nick     string
 	Error    string
 	Identity zkidentity.PublicIdentity
 }

@@ -90,6 +90,7 @@ func (z *ZKS) handleIdentityFind(writer chan *RPCWrapper, msg rpc.Message, nick 
 	} else {
 		payload.Identity = *id
 	}
+	payload.Nick = nick
 	reply.Payload = payload
 	writer <- &reply
 	return nil

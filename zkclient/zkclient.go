@@ -976,6 +976,17 @@ func (z *ZKC) PrintIdentity(id zkidentity.PublicIdentity) {
 		base64.StdEncoding.EncodeToString(id.Identity[:]))
 }
 
+func (z *ZKC) pendingIdentity(nick string) bool {
+	z.pendingIdentitiesMutex.Lock()
+	defer z.pendingIdentitiesMutex.Unlock()
+	ok := z.pendingIdentities != nil && z.pendingIdentities[nick] != nil
+	if ok {
+		z.pendingIdentities[nick] = nil
+	}
+	return ok
+
+}
+
 func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
 	z.Log(0, "initiating kx with %v", id)
 
@@ -1321,6 +1332,10 @@ func (z *ZKC) handleRPC() {
 			if err != nil {
 				exitError = fmt.Errorf("unmarshal " +
 					"IdentityFindReply")
+				return
+			}
+			if !z.pendingIdentity(r.Nick) {
+				z.Log(0, "no missing identity for %s", r.Nick)
 				return
 			}
 			if r.Error != "" {
