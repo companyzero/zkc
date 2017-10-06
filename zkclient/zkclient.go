@@ -1328,6 +1328,9 @@ func (z *ZKC) handleRPC() {
 			} else {
 				z.step1IDKX(r.Identity)
 			}
+			z.pendingIdentitiesMutex.Lock()
+			delete(z.pendingIdentities, r.Identity.Nick)
+			z.pendingIdentitiesMutex.Unlock()
 			err = z.tagStack.Push(message.Tag)
 			if err != nil {
 				exitError = fmt.Errorf("IdentityFindReply "+
