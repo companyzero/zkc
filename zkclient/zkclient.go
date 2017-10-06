@@ -838,14 +838,8 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 	if pt == -1 {
 		return nil, fmt.Errorf("server did not provide time")
 	}
-	delta := pt - time.Now().Unix()
-	if delta < 0 {
-		delta = -delta
-	}
-	if delta > 2 {
-		z.PrintfT(idZKC, REDBOLD+"WARNING: client and server are more "+
-			"than 2 seconds apart"+RESET)
-	}
+	z.PrintfT(idZKC, "NOTE: server provided time %v",
+		time.Unix(pt, 0).Format(z.settings.TimeFormat))
 
 	// attachment size
 	if as == 0 {
@@ -867,7 +861,8 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 
 	// directory mode
 	if dir {
-		z.PrintfT(idZKC, "zkserver keeps an identity directory")
+		z.PrintfT(idZKC, "NOTE: by policy the server allows "+
+			"automatic identity exchanges")
 	}
 
 	// at this point we are going to use tags
