@@ -55,6 +55,14 @@ func (z *ZKC) ratchetExists(id [zkidentity.IdentitySize]byte) bool {
 	return err == nil
 }
 
+// halfRatchetExists checks to see if halfRatchetFilename exists in the id
+// directory.
+func (z *ZKC) halfRatchetExists(id [zkidentity.IdentitySize]byte) bool {
+	_, err := os.Stat(path.Join(z.settings.Root, inboundDir,
+		hex.EncodeToString(id[:]), halfRatchetFilename))
+	return err == nil
+}
+
 func (z *ZKC) removeRatchet(id [zkidentity.IdentitySize]byte,
 	half bool) error {
 

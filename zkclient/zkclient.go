@@ -976,7 +976,31 @@ func (z *ZKC) PrintIdentity(id zkidentity.PublicIdentity) {
 		base64.StdEncoding.EncodeToString(id.Identity[:]))
 }
 
+func (z *ZKC) pendingIdentity(nick string) bool {
+	z.pendingIdentitiesMutex.Lock()
+	defer z.pendingIdentitiesMutex.Unlock()
+	ok := z.pendingIdentities != nil && z.pendingIdentities[nick] != nil
+	if ok {
+		z.pendingIdentities[nick] = nil
+	}
+	return ok
+
+}
+
 func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
+	// preliminary checks
+	if bytes.Equal(id.Identity[:], z.id.Public.Identity[:]) {
+		z.PrintfT(0, "can't kx with self")
+		return
+	}
+	if z.halfRatchetExists(id.Identity) {
+		z.PrintfT(0, "kx already initiated with %s", id.Nick)
+		return
+	} else if z.ratchetExists(id.Identity) {
+		z.PrintfT(0, "kx already complete with %s", id.Nick)
+		return
+	}
+
 	z.Log(0, "initiating kx with %v", id)
 
 	nc, nk, err := sntrup4591761.Encapsulate(rand.Reader, &id.Key)
@@ -1321,6 +1345,10 @@ func (z *ZKC) handleRPC() {
 			if err != nil {
 				exitError = fmt.Errorf("unmarshal " +
 					"IdentityFindReply")
+				return
+			}
+			if !z.pendingIdentity(r.Nick) {
+				z.Log(0, "no missing identity for %s", r.Nick)
 				return
 			}
 			if r.Error != "" {
