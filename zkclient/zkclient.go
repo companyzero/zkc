@@ -988,6 +988,12 @@ func (z *ZKC) pendingIdentity(nick string) bool {
 }
 
 func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
+	// preliminary checks
+	if bytes.Equal(id.Identity[:], z.id.Public.Identity[:]) {
+		z.PrintfT(0, "can't kx with self")
+		return
+	}
+
 	z.Log(0, "initiating kx with %v", id)
 
 	nc, nk, err := sntrup4591761.Encapsulate(rand.Reader, &id.Key)
