@@ -993,6 +993,13 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
 		z.PrintfT(0, "can't kx with self")
 		return
 	}
+	if z.halfRatchetExists(id.Identity) {
+		z.PrintfT(0, "kx already initiated with %s", id.Nick)
+		return
+	} else if z.ratchetExists(id.Identity) {
+		z.PrintfT(0, "kx already complete with %s", id.Nick)
+		return
+	}
 
 	z.Log(0, "initiating kx with %v", id)
 
