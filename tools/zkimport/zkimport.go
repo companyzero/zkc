@@ -123,7 +123,7 @@ func promptUser(cr tools.ServerRecord) error {
 	fmt.Fprintf(os.Stderr, "The authenticity of server '%s' can't be established.\n", cr.IPandPort)
 	fmt.Fprintf(os.Stderr, "Inner fingerprint = %s.\n", cr.PublicIdentity.Fingerprint())
 	fmt.Fprintf(os.Stderr, "Outer fingerprint = %s.\n", tools.Fingerprint(cr.Certificate))
-	if cr.Directory == true {
+	if cr.Directory {
 		fmt.Fprintf(os.Stderr, "This server keeps a directory of identities.\n")
 		fmt.Fprintf(os.Stderr, "Other users will be able to look up your public identity.\n")
 	}
@@ -163,12 +163,12 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 	// see if server already exists
 	serverFile := path.Join(dir, tools.ZKCServerFilename)
 	_, err := os.Stat(serverFile)
-	if err == nil && force == false {
+	if err == nil && !force {
 		return fmt.Errorf("server already configured")
 	}
 
 	// ask the user to verify the server's coordinates
-	if force == false {
+	if !force {
 		err = promptUser(cr)
 		if err != nil {
 			return err

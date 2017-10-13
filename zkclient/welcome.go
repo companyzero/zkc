@@ -36,8 +36,7 @@ type welcomeWindow struct {
 }
 
 var (
-	_        ttk.Windower = (*welcomeWindow)(nil)
-	welcomeW *ttk.Window
+	_ ttk.Windower = (*welcomeWindow)(nil)
 )
 
 func (ww *welcomeWindow) Status(w *ttk.Window, bad bool, format string,

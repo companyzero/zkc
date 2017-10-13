@@ -21,7 +21,6 @@ var (
 
 type Debug struct {
 	sync.Mutex
-	mask       uint64
 	filename   string
 	format     string
 	subsystems map[int]string

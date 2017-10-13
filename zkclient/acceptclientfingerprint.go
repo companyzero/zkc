@@ -35,8 +35,7 @@ type acceptCFPWindow struct {
 }
 
 var (
-	_          ttk.Windower = (*acceptCFPWindow)(nil)
-	acceptCFPW *ttk.Window
+	_ ttk.Windower = (*acceptCFPWindow)(nil)
 )
 
 func (aw *acceptCFPWindow) Status(w *ttk.Window, bad bool, format string,

@@ -126,7 +126,7 @@ func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...
 			id = z.active
 		}
 		if id < len(z.conversation) && z.conversation[id] != nil {
-			if localTs == false {
+			if !localTs {
 				z.updateTS(id, ts)
 			}
 			z.conversation[id].console.Append("%v %v",
@@ -584,7 +584,6 @@ type ZKC struct {
 
 	// new rpc writer
 	done   chan struct{}    // shut it down
-	wg     sync.WaitGroup   // done wait
 	lo     chan wireMsg     // low priority data channel
 	hi     chan wireMsg     // high priority message channel
 	depth  chan struct{}    // return queue depth
@@ -945,24 +944,22 @@ func (z *ZKC) goOnlineRetry() {
 		}
 		z.RUnlock()
 
-		select {
-		case <-timer.C:
-			z.RLock()
-			if z.online {
-				z.RUnlock()
-				continue
-			}
+		<-timer.C
+		z.RLock()
+		if z.online {
 			z.RUnlock()
-
-			z.PrintfT(0, "Trying to reconnect to: %v",
-				z.serverAddress)
-			err := z.goOnlineAndPrint()
-			if err == errCert {
-				// give up
-				return
-			}
-			timer.Reset(d)
+			continue
 		}
+		z.RUnlock()
+
+		z.PrintfT(0, "Trying to reconnect to: %v",
+			z.serverAddress)
+		err := z.goOnlineAndPrint()
+		if err == errCert {
+			// give up
+			return
+		}
+		timer.Reset(d)
 	}
 }
 
@@ -1583,19 +1580,7 @@ func (z *ZKC) writeMessage(msg *rpc.Message, payload interface{}) error {
 
 var (
 	errNotAdmin = errors.New("not group administrator")
-	errNotFound = errors.New("group not found")
 )
-
-func (z *ZKC) _isGroupAdmin(id [zkidentity.IdentitySize]byte, name string) error {
-	group, found := z.groups[name]
-	if !found {
-		return errNotFound
-	}
-	if !bytes.Equal(group.Members[0][:], id[:]) {
-		return errNotAdmin
-	}
-	return nil
-}
 
 func (z *ZKC) updateGroupList(id [zkidentity.IdentitySize]byte,
 	gl rpc.GroupList) error {
@@ -1633,14 +1618,6 @@ func (z *ZKC) _updateGroupList(id [zkidentity.IdentitySize]byte,
 
 	z.groups[gl.Name] = gl
 	return z._gcSaveDisk(gl.Name)
-}
-
-func (z *ZKC) addIdGroupchat(gcName string,
-	id zkidentity.PublicIdentity) (rpc.GroupList, error) {
-	z.Lock()
-	defer z.Unlock()
-
-	return z._addIdGroupchat(gcName, id)
 }
 
 func (z *ZKC) _addIdGroupchat(gcName string,
@@ -1964,17 +1941,15 @@ func _main() error {
 	go func() {
 		timer := time.NewTicker(1 * time.Second)
 		for {
-			select {
-			case <-timer.C:
-				ttk.Queue(func() {
-					z.RLock()
-					s := z.calculateStatus()
-					z.mw.status.SetText(s)
-					z.mw.status.Render()
-					z.RUnlock()
-					ttk.Flush()
-				})
-			}
+			<-timer.C
+			ttk.Queue(func() {
+				z.RLock()
+				s := z.calculateStatus()
+				z.mw.status.SetText(s)
+				z.mw.status.Render()
+				z.RUnlock()
+				ttk.Flush()
+			})
 		}
 	}()
 
