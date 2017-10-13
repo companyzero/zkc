@@ -34,8 +34,7 @@ type acceptWindow struct {
 }
 
 var (
-	_       ttk.Windower = (*acceptWindow)(nil)
-	acceptW *ttk.Window
+	_ ttk.Windower = (*acceptWindow)(nil)
 )
 
 func (aw *acceptWindow) Status(w *ttk.Window, bad bool, format string,

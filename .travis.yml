@@ -15,8 +15,10 @@ script:
   - test -z "$(gometalinter --vendor --disable-all
       --enable=gofmt
       --enable=vet
+      --enable=gosimple
       --enable=unconvert
       --enable=ineffassign
+      --enable=unused
       --deadline=20m ./... | tee /dev/stderr)"
   - go test -v -race ${TESTDIRS}
 #after_success:

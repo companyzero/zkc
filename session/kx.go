@@ -216,7 +216,7 @@ func recvProof(kx *KX, mk, ek *[32]byte, parts ...[]byte) ([]byte, error) {
 	}
 	D(0, "[session.recvProof] expected proof: %x", d)
 	D(0, "[session.recvProof] received proof: %x", rd)
-	if hmac.Equal(d, rd) == false {
+	if !hmac.Equal(d, rd) {
 		return nil, ErrUnmarshal
 	}
 	return d, nil
@@ -404,7 +404,7 @@ func (kx *KX) readWithKey(k *[32]byte) ([]byte, error) {
 	}
 	data, ok := secretbox.Open(nil, payload, &kx.readSeq, k)
 	incSeq(&kx.readSeq)
-	if ok == false {
+	if !ok {
 		return nil, ErrDecrypt
 	}
 	return data, nil

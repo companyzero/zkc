@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -25,10 +24,6 @@ import (
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/davecgh/go-xdr/xdr2"
-)
-
-var (
-	errNotFound = errors.New("not found")
 )
 
 // fetchServerFullIdentity() fetches a server's signed identity data.

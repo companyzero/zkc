@@ -17,13 +17,6 @@ import (
 	"github.com/companyzero/zkc/zkidentity"
 )
 
-var (
-	alice   *zkidentity.FullIdentity
-	bob     *zkidentity.FullIdentity
-	aliceKX *KX
-	bobKX   *KX
-)
-
 var mtx sync.Mutex
 
 func log(id int, format string, args ...interface{}) {

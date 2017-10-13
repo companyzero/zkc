@@ -718,8 +718,7 @@ func saveConversations(z *ZKC) error {
 	defer cdb.Unlock()
 	cdb.NewTable("conversations")
 	var b bytes.Buffer
-	var n int
-	n = len(z.conversation)
+	n := len(z.conversation)
 	_, err = xdr.Marshal(&b, n)
 	if err != nil {
 		return err
@@ -744,11 +743,8 @@ func saveConversations(z *ZKC) error {
 			return err
 		}
 	}
-	err = cdb.Save()
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return cdb.Save()
 }
 
 func closeAll(z *ZKC) {

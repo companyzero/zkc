@@ -78,12 +78,7 @@ func (z *ZKC) _gcSaveDisk(name string) error {
 	}
 
 	// lay on disk
-	err = ioutil.WriteFile(filename, bb.Bytes(), 0600)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(filename, bb.Bytes(), 0600)
 }
 
 func (z *ZKC) gcNew(args []string) error {
@@ -272,13 +267,13 @@ func (z *ZKC) gcKick(args []string) error {
 	// warn if user is not in kicklist but do it anyway
 	found = false
 	for _, m := range gc.Members {
-		if bytes.Equal(m[:], id.Identity[:]) == false {
+		if !bytes.Equal(m[:], id.Identity[:]) {
 			ngc.Members = append(ngc.Members, m)
 		} else {
 			found = true
 		}
 	}
-	if found == false {
+	if !found {
 		z.PrintfT(-1, "WARNING: %v not part of %v, sending kick "+
 			"message anyway", args[3], args[2])
 	}
