@@ -46,7 +46,7 @@ func (z *ZKS) prunePending(pending *inidb.INIDB) {
 
 func (z *ZKS) validToken(token string, conn net.Conn) bool {
 	// open db
-	pending, err := inidb.New(path.Join(z.settings.Root, pendingFilename),
+	pending, err := inidb.New(path.Join(z.settings.Root, pendingPath),
 		true, 10)
 	if err != nil {
 		z.Error(idApp, "could not open pending db: %v", err)

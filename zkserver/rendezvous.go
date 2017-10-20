@@ -70,7 +70,7 @@ func (z *ZKS) handleRendezvousPull(writer chan *RPCWrapper,
 	}
 
 	// open db
-	rz, err := inidb.New(path.Join(z.settings.Root, rendezvousFilename),
+	rz, err := inidb.New(path.Join(z.settings.Root, rendezvousPath),
 		true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open rendezvous db: %v", err)
@@ -146,7 +146,7 @@ func (z *ZKS) handleRendezvous(writer chan *RPCWrapper,
 	retry := 25
 
 	// open db
-	rz, err := inidb.New(path.Join(z.settings.Root, rendezvousFilename),
+	rz, err := inidb.New(path.Join(z.settings.Root, rendezvousPath),
 		true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open rendezvous db: %v",

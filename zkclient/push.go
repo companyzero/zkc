@@ -51,7 +51,7 @@ func (z *ZKC) step3IDKX(msg rpc.Message, p rpc.Push) error {
 	//
 
 	// open db
-	kdb, err := inidb.New(path.Join(z.settings.Root, keysFilename), true,
+	kdb, err := inidb.New(path.Join(z.settings.Root, blobKeysPath), true,
 		10)
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open blobkeys database: %v", err)
@@ -163,7 +163,7 @@ func (z *ZKC) step2IDKX(msg rpc.Message, p rpc.Push) error {
 	//
 
 	// open db
-	kdb, err := inidb.New(path.Join(z.settings.Root, keysFilename), true,
+	kdb, err := inidb.New(path.Join(z.settings.Root, blobKeysPath), true,
 		10)
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open blobkeys database: %v", err)

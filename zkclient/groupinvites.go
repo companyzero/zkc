@@ -20,8 +20,15 @@ import (
 )
 
 const (
-	invitesFilename = "invites/invites.ini"
-	joinsFilename   = "joins/joins.ini"
+	invitesDir  = "invites"
+	invitesFile = "invites.ini"
+	joinsDir    = "joins"
+	joinsFile   = "joins.ini"
+)
+
+var (
+	invitesPath = path.Join(invitesDir, invitesFile)
+	joinsPath   = path.Join(joinsDir, joinsFile)
 )
 
 // join db format:
@@ -53,7 +60,7 @@ func unmarshalInvite(b64 string) (*rpc.GroupInvite, error) {
 func (z *ZKC) listJoins(args []string) {
 	z.PrintfT(-1, "Pending joins:")
 
-	jdb, err := inidb.New(path.Join(z.settings.Root, joinsFilename),
+	jdb, err := inidb.New(path.Join(z.settings.Root, joinsPath),
 		false, 10)
 	if err != nil {
 		return
@@ -66,7 +73,7 @@ func (z *ZKC) listJoins(args []string) {
 func (z *ZKC) listInvites(args []string) {
 	z.PrintfT(-1, "Pending invites:")
 
-	idb, err := inidb.New(path.Join(z.settings.Root, invitesFilename),
+	idb, err := inidb.New(path.Join(z.settings.Root, invitesPath),
 		false, 10)
 	if err != nil {
 		return
@@ -128,7 +135,7 @@ func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, 
 	}
 
 	// open db
-	idb, err := inidb.New(path.Join(z.settings.Root, invitesFilename),
+	idb, err := inidb.New(path.Join(z.settings.Root, invitesPath),
 		true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return nil, fmt.Errorf("could not open invites db: %v", err)
@@ -204,7 +211,7 @@ func (z *ZKC) joinDBAdd(from [zkidentity.IdentitySize]byte,
 	froms := hex.EncodeToString(from[:])
 
 	// open db
-	jdb, err := inidb.New(path.Join(z.settings.Root, joinsFilename),
+	jdb, err := inidb.New(path.Join(z.settings.Root, joinsPath),
 		true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open joins db: %v", err)
@@ -247,7 +254,7 @@ func (z *ZKC) joinDBAdd(from [zkidentity.IdentitySize]byte,
 
 func (z *ZKC) getJoin(group string, token uint64) ([zkidentity.IdentitySize]byte,
 	error) {
-	jdb, err := inidb.New(path.Join(z.settings.Root, joinsFilename),
+	jdb, err := inidb.New(path.Join(z.settings.Root, joinsPath),
 		false, 10)
 	if err != nil {
 		return [zkidentity.IdentitySize]byte{},
@@ -284,7 +291,7 @@ func (z *ZKC) getJoin(group string, token uint64) ([zkidentity.IdentitySize]byte
 }
 
 func (z *ZKC) delJoin(group string, token uint64) error {
-	jdb, err := inidb.New(path.Join(z.settings.Root, joinsFilename),
+	jdb, err := inidb.New(path.Join(z.settings.Root, joinsPath),
 		false, 10)
 	if err != nil {
 		return fmt.Errorf("could not open joins db: %v", err)
@@ -337,7 +344,7 @@ func (z *ZKC) delInvite(from [zkidentity.IdentitySize]byte,
 
 	froms := hex.EncodeToString(from[:])
 
-	idb, err := inidb.New(path.Join(z.settings.Root, invitesFilename),
+	idb, err := inidb.New(path.Join(z.settings.Root, invitesPath),
 		false, 10)
 	if err != nil {
 		return fmt.Errorf("could not open invites db: %v", err)

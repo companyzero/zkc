@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path"
 	"runtime"
 
 	"github.com/companyzero/zkc/rpc"
@@ -23,7 +24,7 @@ func ObtainSettings() (*settings.Settings, error) {
 	}
 
 	// config file
-	filename := flag.String("cfg", usr.HomeDir+"/.zkserver/zkserver.conf",
+	filename := flag.String("cfg", path.Join(usr.HomeDir, ".zkserver", "zkserver.conf"),
 		"config file")
 	version := flag.Bool("version", false, "show version")
 	flag.Parse()
