@@ -25,8 +25,13 @@ import (
 )
 
 const (
-	consoleText           = "console"
-	conversationsFilename = "conversations/conversations.ini"
+	consoleText       = "console"
+	conversationsDir  = "conversations"
+	conversationsFile = "conversations.ini"
+)
+
+var (
+	conversationsPath = path.Join(conversationsDir, conversationsFile)
 )
 
 var (
@@ -702,13 +707,13 @@ type savedConversation struct {
 }
 
 func saveConversations(z *ZKC) error {
-	os.Remove(path.Join(z.settings.Root, conversationsFilename))
-	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsFilename), true, 10)
+	os.Remove(path.Join(z.settings.Root, conversationsPath))
+	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsPath), true, 10)
 	if err != inidb.ErrCreated {
 		if err != nil {
 			return err
 		} else {
-			return fmt.Errorf("could not create conversations.ini")
+			return fmt.Errorf("could not create %s", conversationsPath)
 		}
 	}
 	err = cdb.Lock()
@@ -771,7 +776,7 @@ func unmarshalConversation(b64 string) (*savedConversation, error) {
 }
 
 func restoreConversations(z *ZKC) error {
-	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsFilename), false, 10)
+	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsPath), false, 10)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,12 @@ import (
 )
 
 const (
-	pendingFilename = "pending/pending.ini"
+	pendingDir  = "pending"
+	pendingFile = "pending.ini"
+)
+
+var (
+	pendingPath = path.Join(pendingDir, pendingFile)
 )
 
 func _main() error {
@@ -51,7 +56,7 @@ func _main() error {
 	root = strings.Replace(root, "~", usr.HomeDir, 1)
 
 	// open db
-	pending, err := inidb.New(path.Join(root, pendingFilename), true, 10)
+	pending, err := inidb.New(path.Join(root, pendingPath), true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open inidb: %v", err)
 	}

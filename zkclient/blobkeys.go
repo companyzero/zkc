@@ -15,8 +15,13 @@ import (
 )
 
 const (
-	keysFilename = "blobkeys/blobkeys.ini"
+	blobKeysDir  = "blobkeys"
+	blobKeysFile = "blobkeys.ini"
 	expiration   = 24 * 7 * time.Hour
+)
+
+var (
+	blobKeysPath = path.Join(blobKeysDir, blobKeysFile)
 )
 
 func (z *ZKC) pruneKey(kdb *inidb.INIDB) {
@@ -54,7 +59,7 @@ func (z *ZKC) pruneKey(kdb *inidb.INIDB) {
 
 func (z *ZKC) saveKey(key *[32]byte) error {
 	// open db
-	kdb, err := inidb.New(path.Join(z.settings.Root, keysFilename),
+	kdb, err := inidb.New(path.Join(z.settings.Root, blobKeysPath),
 		true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return err

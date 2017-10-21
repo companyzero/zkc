@@ -42,8 +42,15 @@ const (
 
 	tagDepth = 32
 
-	pendingFilename    = "pending/pending.ini"
-	rendezvousFilename = "rendezvous/rendezvous.ini"
+	pendingDir     = "pending"
+	pendingFile    = "pending.ini"
+	rendezvousDir  = "rendezvous"
+	rendezvousFile = "rendezvous.ini"
+)
+
+var (
+	pendingPath    = path.Join(pendingDir, pendingFile)
+	rendezvousPath = path.Join(rendezvousDir, rendezvousFile)
 )
 
 // RPCWrapper is a wrapped RPC Message for internal use.  This is required because RPC messages
