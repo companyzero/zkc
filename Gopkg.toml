@@ -25,10 +25,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/marcopeereboom/lockfile"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/mitchellh/go-homedir"
 
 [[constraint]]

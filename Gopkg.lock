@@ -38,12 +38,6 @@
   revision = "30a0823e951a0a83c401091737f2b1957d163dd0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/marcopeereboom/lockfile"
-  packages = ["."]
-  revision = "fccf54cf713a65ff908069f4f28184d85089af9c"
-
-[[projects]]
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
   revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
@@ -82,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e4b2b62fcba969c71ffb8e36fc5a4ad9f5f6ca1216235e5b5f26f241f6c6a9c1"
+  inputs-digest = "ad02f37c4e13ce3791345e42b4c37767f1ac92178784a5421a51df7a264ccee8"
   solver-name = "gps-cdcl"
   solver-version = 1

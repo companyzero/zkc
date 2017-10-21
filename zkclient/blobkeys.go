@@ -48,13 +48,6 @@ func (z *ZKC) pruneKey(kdb *inidb.INIDB) {
 		z.Error(idZKC, "could not save keys database: %v", err)
 		// falthrough
 	}
-
-	// unlock
-	err = kdb.Unlock()
-	if err != nil {
-		z.Error(idZKC, "could not unlock key database: %v", err)
-		return
-	}
 }
 
 func (z *ZKC) saveKey(key *[32]byte) error {
@@ -63,10 +56,6 @@ func (z *ZKC) saveKey(key *[32]byte) error {
 		true, 10)
 	if err != nil && err != inidb.ErrCreated {
 		return err
-	}
-	err = kdb.Lock()
-	if err != nil {
-		return fmt.Errorf("lock %v", err)
 	}
 
 	defer z.pruneKey(kdb) // kill all expired keys

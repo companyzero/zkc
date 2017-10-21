@@ -121,14 +121,6 @@ func (a *Account) Create(pid zkidentity.PublicIdentity, force bool) error {
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open userdb: %v", err)
 	}
-	err = user.Lock()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		// not much error recovery we can, catch it on next entry
-		user.Unlock()
-	}()
 
 	// save public identity
 	var b bytes.Buffer
@@ -166,13 +158,6 @@ func (a *Account) Push(id [zkidentity.IdentitySize]byte) error {
 		return fmt.Errorf("could not open userdb: %v", err)
 	}
 
-	err = user.Lock()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		user.Unlock()
-	}()
 	err = user.Set("", "listed", "1")
 	if err != nil {
 		return fmt.Errorf("could not list user: %v", err)
@@ -199,7 +184,6 @@ func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
 			a.Unlock()
 			return nil, fmt.Errorf("could not find user: %v", err)
 		}
-		err = user.Lock()
 		a.Unlock()
 		if err != nil {
 			return nil, fmt.Errorf("could not lock user: %v", err)
@@ -208,27 +192,22 @@ func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
 		if err == nil && listed == "1" {
 			b64, err := user.Get("", "identity")
 			if err != nil {
-				user.Unlock()
 				return nil, fmt.Errorf("could not get user: %v", err)
 			}
 			blob, err := base64.StdEncoding.DecodeString(b64)
 			if err != nil {
-				user.Unlock()
 				return nil, fmt.Errorf("could not decode user: %v", err)
 			}
 			id := new(zkidentity.PublicIdentity)
 			br := bytes.NewReader(blob)
 			_, err = xdr.Unmarshal(br, &id)
 			if err != nil {
-				user.Unlock()
 				return nil, fmt.Errorf("could not unmarshal user: %v", err)
 			}
 			if id.Nick == nick {
-				user.Unlock()
 				return id, nil
 			}
 		}
-		user.Unlock()
 		a.Lock()
 	}
 	a.Unlock()
@@ -247,13 +226,6 @@ func (a *Account) Pull(id [zkidentity.IdentitySize]byte) error {
 		return fmt.Errorf("could not open userdb: %v", err)
 	}
 
-	err = user.Lock()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		user.Unlock()
-	}()
 	err = user.Del("", "listed")
 	if err != nil {
 		return fmt.Errorf("could not unlist user: %v", err)
