@@ -75,12 +75,6 @@ func (z *ZKS) handleRendezvousPull(writer chan *RPCWrapper,
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open rendezvous db: %v", err)
 	}
-	err = rz.Lock()
-	if err != nil {
-		return fmt.Errorf("could not lock rendezvous db: %v", err)
-	}
-	// not much error recovery to do on unlock
-	defer rz.Unlock()
 
 	// vars to deal with go bitching about goto
 	var (
@@ -152,21 +146,12 @@ func (z *ZKS) handleRendezvous(writer chan *RPCWrapper,
 		return fmt.Errorf("could not open rendezvous db: %v",
 			err)
 	}
-	err = rz.Lock()
-	if err != nil {
-		return fmt.Errorf("could not lock rendezvous db: %v", err)
-	}
 	//defer z.pruneRendezvous(rz) // kill all expired records
 	defer func() {
 		// save db back
 		err := rz.Save()
 		if err != nil {
 			z.Error(idApp, "could not save rendezvous db: %v", err)
-		}
-		err = rz.Unlock()
-		if err != nil {
-			z.Error(idApp, "could not unlock rendezvous db: %v",
-				err)
 		}
 	}()
 

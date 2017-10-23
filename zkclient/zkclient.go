@@ -1825,40 +1825,26 @@ func _main() error {
 
 	// see if we have a myserver.ini
 	var server *inidb.INIDB
-	var foundServerIdentity bool
 	var foundClientIdentity bool
 	var usr *user.User
 
-	for tries := 0; tries < 3; tries++ {
-		server, err = inidb.New(filename, false, 10)
-		// inidb.ErrCouldNotLock only happens if there is some error
-		// that was not resolved by prior rm so relay that to user.
-		if err == inidb.ErrCouldNotLock {
-			// remove lock and retry
-			err = os.Remove(path.Join(path.Dir(filename), ".lock"))
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		if err == nil {
-			foundServerIdentity = true
-			// obtain all entries from ini
-			err = z.parseMyServer(server)
-			if err != nil {
-				return fmt.Errorf("could not parse myserver: %v",
-					err)
-			}
-		}
-		break
+	server, err = inidb.New(filename, false, 10)
+	// inidb.ErrCouldNotLock only happens if there is some error
+	// that was not resolved by prior rm so relay that to user.
+	if err != nil {
+		return err
+	}
+	// obtain all entries from ini
+	err = z.parseMyServer(server)
+	if err != nil {
+		return fmt.Errorf("could not parse myserver: %v",
+			err)
 	}
 
 	// server and client identities are stored together
-	if foundServerIdentity {
-		err = z.parseMyIdentity(server)
-		if err == nil {
-			foundClientIdentity = true
-		}
+	err = z.parseMyIdentity(server)
+	if err == nil {
+		foundClientIdentity = true
 	}
 
 	if !foundClientIdentity {

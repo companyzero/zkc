@@ -36,12 +36,6 @@ func (z *ZKS) prunePending(pending *inidb.INIDB) {
 	if err != nil {
 		z.Error(idApp, "could not save pending db: %v", err)
 	}
-
-	// unlock
-	err = pending.Unlock()
-	if err != nil {
-		z.Error(idApp, "could not unlock pending db: %v", err)
-	}
 }
 
 func (z *ZKS) validToken(token string, conn net.Conn) bool {
@@ -52,12 +46,6 @@ func (z *ZKS) validToken(token string, conn net.Conn) bool {
 		z.Error(idApp, "could not open pending db: %v", err)
 		return false
 	}
-	err = pending.Lock()
-	if err != nil {
-		z.Error(idApp, "could not open lock pending db: %v", err)
-		return false
-	}
-
 	defer z.prunePending(pending) // kill all expired records
 
 	// get token

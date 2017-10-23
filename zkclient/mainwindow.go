@@ -716,11 +716,7 @@ func saveConversations(z *ZKC) error {
 			return fmt.Errorf("could not create %s", conversationsPath)
 		}
 	}
-	err = cdb.Lock()
-	if err != nil {
-		return err
-	}
-	defer cdb.Unlock()
+
 	cdb.NewTable("conversations")
 	var b bytes.Buffer
 	n := len(z.conversation)
@@ -732,6 +728,7 @@ func saveConversations(z *ZKC) error {
 	if err != nil {
 		return err
 	}
+
 	for i, v := range z.conversation {
 		var s savedConversation
 		var b bytes.Buffer
@@ -780,11 +777,6 @@ func restoreConversations(z *ZKC) error {
 	if err != nil {
 		return err
 	}
-	err = cdb.Lock()
-	if err != nil {
-		return err
-	}
-	defer cdb.Unlock()
 	b64, err := cdb.Get("conversations", "n")
 	if err != nil {
 		return err

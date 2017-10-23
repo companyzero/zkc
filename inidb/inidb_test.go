@@ -9,8 +9,6 @@ import (
 	"path"
 	"testing"
 	"time"
-
-	"github.com/marcopeereboom/lockfile"
 )
 
 var (
@@ -47,42 +45,6 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func TestLock(t *testing.T) {
-	dir, err := ioutil.TempDir("", "inidb")
-	if err != nil {
-		t.Fatal(err)
-	}
-	l1, err := New(path.Join(dir, "db.ini"), true, 10)
-	if err != nil && err != ErrCreated {
-		t.Fatal(err)
-	}
-	l2, err := New(path.Join(dir, "db.ini"), false, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = l1.Lock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	l2.LockTimeout(time.Second)
-	err = l2.Lock()
-	if err != lockfile.ErrTimeout {
-		t.Fatal(err)
-	}
-
-	err = l1.Unlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = l2.Lock()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestOpen(t *testing.T) {
 	var err error
 
@@ -108,11 +70,6 @@ func TestOpen(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	err := i.Lock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	value, err := i.Get("other", "oink")
 	if err != nil {
 		t.Fatal(err)
@@ -156,20 +113,10 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	err = i.Unlock()
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestGetNewFile(t *testing.T) {
 	ii, err := New(filename, false, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = ii.Lock()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,20 +138,10 @@ func TestGetNewFile(t *testing.T) {
 	if value != "bleh" {
 		t.Fatalf("TestGetNewFile value not found")
 	}
-
-	err = ii.Unlock()
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestGetFileMax(t *testing.T) {
 	ii, err := New(filename, false, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = ii.Lock()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,16 +156,11 @@ func TestGetFileMax(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	// unlock to kill lock file
-	err = ii.Unlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	d, err := ioutil.ReadDir(path.Dir(ii.filename))
 	if err != nil {
 		t.Fatal(err)
 	}
+	// expect 4 ini files
 	if len(d) != 4 {
 		t.Fatalf("invalid directory count")
 	}

@@ -140,12 +140,6 @@ func (z *ZKC) inviteDBAdd(id [zkidentity.IdentitySize]byte, description string, 
 	if err != nil && err != inidb.ErrCreated {
 		return nil, fmt.Errorf("could not open invites db: %v", err)
 	}
-	err = idb.Lock()
-	if err != nil {
-		return nil, fmt.Errorf("could not lock invites db: %v", err)
-	}
-	// not much error recovery to do on unlock
-	defer idb.Unlock()
 
 	_, err = idb.Get(group.Name, ids)
 	if err == nil {
@@ -216,12 +210,6 @@ func (z *ZKC) joinDBAdd(from [zkidentity.IdentitySize]byte,
 	if err != nil && err != inidb.ErrCreated {
 		return fmt.Errorf("could not open joins db: %v", err)
 	}
-	err = jdb.Lock()
-	if err != nil {
-		return fmt.Errorf("could not lock joins db: %v", err)
-	}
-	// not much error recovery to do on unlock
-	defer jdb.Unlock()
 
 	_, err = jdb.Get(gi.Name, froms)
 	if err == nil {
@@ -297,13 +285,6 @@ func (z *ZKC) delJoin(group string, token uint64) error {
 		return fmt.Errorf("could not open joins db: %v", err)
 	}
 
-	err = jdb.Lock()
-	if err != nil {
-		return fmt.Errorf("could not lock joins db: %v", err)
-	}
-	// not much error recovery to do on unlock
-	defer jdb.Unlock()
-
 	records := jdb.Records(group)
 	if len(records) != 1 {
 		return fmt.Errorf("invalid join table")
@@ -349,13 +330,6 @@ func (z *ZKC) delInvite(from [zkidentity.IdentitySize]byte,
 	if err != nil {
 		return fmt.Errorf("could not open invites db: %v", err)
 	}
-
-	err = idb.Lock()
-	if err != nil {
-		return fmt.Errorf("could not lock invites db: %v", err)
-	}
-	// not much error recovery to do on unlock
-	defer idb.Unlock()
 
 	// verify originator and token
 	r, err := idb.Get(gj.Name, froms)
