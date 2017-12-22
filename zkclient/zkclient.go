@@ -1472,12 +1472,11 @@ func (z *ZKC) welcomeUser(welcome *rpc.Welcome) error {
 		break
 	}
 
-	var err error
 	if len(z.conversation) == 1 {
-		err = restoreConversations(z)
+		_ = restoreConversations(z)
 	}
 
-	return err
+	return nil
 }
 
 // fetch tries to obtain a Rendezvous blob using provided pin.
@@ -1819,34 +1818,33 @@ func _main() error {
 		return err
 	}
 
-	// preemptively delete lock on myserver.ini
-	filename := path.Join(z.settings.Root, tools.ZKCServerFilename)
-	os.Remove(path.Join(path.Dir(filename), ".lock"))
-
 	// see if we have a myserver.ini
 	var server *inidb.INIDB
+	var foundServerIdentity bool
 	var foundClientIdentity bool
 	var usr *user.User
 
+	filename := path.Join(z.settings.Root, tools.ZKCServerFilename)
 	server, err = inidb.New(filename, false, 10)
-	// inidb.ErrCouldNotLock only happens if there is some error
-	// that was not resolved by prior rm so relay that to user.
-	if err != nil {
-		return err
-	}
-	// obtain all entries from ini
-	err = z.parseMyServer(server)
-	if err != nil {
-		return fmt.Errorf("could not parse myserver: %v",
-			err)
-	}
-
-	// server and client identities are stored together
-	err = z.parseMyIdentity(server)
 	if err == nil {
-		foundClientIdentity = true
+		foundServerIdentity = true
+		// obtain all entries from ini
+		err = z.parseMyServer(server)
+		if err != nil {
+			return fmt.Errorf("could not parse myserver: %v",
+				err)
+		}
 	}
 
+	// Parse server identity
+	if foundServerIdentity {
+		err = z.parseMyIdentity(server)
+		if err == nil {
+			foundClientIdentity = true
+		}
+	}
+
+	// Create new user if it doesn't exist
 	if !foundClientIdentity {
 		// obtain local identity info
 		usr, err = user.Current()
