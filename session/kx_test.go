@@ -89,7 +89,7 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 
 	msg := []byte("this is a message of sorts")
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(1)
 	wait := make(chan bool)
 	go func() {
 		defer wg.Done()
@@ -167,7 +167,6 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 		}
 	}
 
-	wg.Done()
 	wg.Wait()
 }
 
