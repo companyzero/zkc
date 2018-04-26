@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.8.x
+  - 1.10.x
 sudo: false
 install:
   - go get -v github.com/golang/dep/cmd/dep
@@ -11,16 +11,15 @@ install:
 script:
   - export PATH=$PATH:$HOME/gopath/bin
   - export GORACE="halt_on_error=1"
-  - export TESTDIRS=$(go list ./... | grep -v '/vendor/')
-  - test -z "$(gometalinter --vendor --disable-all
+  - gometalinter --vendor --disable-all
       --enable=gofmt
       --enable=vet
       --enable=gosimple
       --enable=unconvert
       --enable=ineffassign
       --enable=unused
-      --deadline=20m ./... | tee /dev/stderr)"
-  - go test -v -race ${TESTDIRS}
+      --deadline=20m ./...
+  - go test -v -race ./...
 #after_success:
 #    - go get -v github.com/mattn/goveralls
 #    - goveralls -coverprofile=profile.cov -service=travis-ci
