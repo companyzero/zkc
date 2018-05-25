@@ -31,10 +31,12 @@ $ go version
 
 ```bash
 $ go get -u github.com/golang/dep/cmd/dep
+$ mkdir -p $GOPATH/src/github.com/companyzero/
+$ cd $GOPATH/src/github.com/companyzero/
 $ git clone https://github.com/companyzero/zkc
-$ cd $GOPATH/src/github.com/companyzero/zkc
+$ cd zkc
 $ dep ensure
-$ go install ./tools/... ./zkclient/... ./zkserver/...
+$ go install -v ./...
 ```
 
 - zkc (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
