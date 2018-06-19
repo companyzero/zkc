@@ -31,6 +31,7 @@ $ go version
 
 ```bash
 $ go get -u github.com/golang/dep/cmd/dep
+$ go get -u golang.org/x/sys/unix
 $ mkdir -p $GOPATH/src/github.com/companyzero/
 $ cd $GOPATH/src/github.com/companyzero/
 $ git clone https://github.com/companyzero/zkc
