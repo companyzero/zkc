@@ -67,7 +67,7 @@ func newTLSCertPair(organization string, validUntil time.Time,
 		KeyUsage: x509.KeyUsageKeyEncipherment |
 			x509.KeyUsageDigitalSignature |
 			x509.KeyUsageCertSign,
-		IsCA: true, // so can sign self.
+		IsCA:                  true, // so can sign self.
 		BasicConstraintsValid: true,
 	}
 

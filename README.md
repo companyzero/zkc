@@ -30,13 +30,15 @@ $ go version
 - Run the following commands to obtain zkc, all dependencies, and install it:
 
 ```bash
-$ go get -u github.com/golang/dep/cmd/dep
 $ mkdir -p $GOPATH/src/github.com/companyzero/
 $ cd $GOPATH/src/github.com/companyzero/
 $ git clone https://github.com/companyzero/zkc
 $ cd zkc
-$ dep ensure
-$ go install -v ./...
+```
+
+To install zkclient, for example:
+```
+$ cd zkclient && env GO111MODULE=on go build
 ```
 
 - zkc (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
