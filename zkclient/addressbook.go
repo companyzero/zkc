@@ -120,7 +120,7 @@ func (z *ZKC) loadIdentities() error {
 		err = z.addressBookAdd(idDisk)
 		if err != nil {
 			z.PrintfT(0, "unable to add to address book: %v", err)
-			return err
+			continue
 		}
 	}
 
