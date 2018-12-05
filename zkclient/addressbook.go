@@ -63,11 +63,9 @@ func (z *ZKC) addressBookAdd(id zkidentity.PublicIdentity) error {
 	}
 
 	nick, err := z.ab.Add(id)
-	if err != nil {
-		if err == addressbook.ErrDuplicateNick {
-			z.PrintfT(0, "warning duplicate nick added: %v -> %v",
-				id.Nick, nick)
-		}
+	if err == addressbook.ErrDuplicateNick {
+		return fmt.Errorf("warning duplicate nick added: "+
+			"%v -> %v", id.Nick, nick)
 	}
 	return err
 }
