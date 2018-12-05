@@ -44,8 +44,9 @@ func (a *AddressBook) Add(identity zkidentity.PublicIdentity) (string, error) {
 	defer a.Unlock()
 
 	var (
-		found, warn bool
-		i           zkidentity.PublicIdentity
+		found bool
+		i     zkidentity.PublicIdentity
+		err   error
 	)
 
 	for {
@@ -56,17 +57,13 @@ func (a *AddressBook) Add(identity zkidentity.PublicIdentity) (string, error) {
 				break
 			}
 			identity.Nick += "_"
-			warn = true
+			err = ErrDuplicateNick // mark nick as seen
 			continue
 		}
 		break
 	}
-	if warn {
-		return identity.Nick, ErrDuplicateNick
-	}
 	a.identities[identity.Nick] = identity
-
-	return identity.Nick, nil
+	return identity.Nick, err
 }
 
 // Del permanently removes user from the address book.
