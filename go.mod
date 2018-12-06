@@ -13,5 +13,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	golang.org/x/crypto v0.0.0-20170927200519-c84b36c635ad
+	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
 	golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35
 )

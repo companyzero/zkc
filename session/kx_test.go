@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/companyzero/zkc/zkidentity"
+	"golang.org/x/sync/errgroup"
 )
 
 var mtx sync.Mutex
@@ -88,48 +89,41 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 	t.Logf("bob fingerprint: %v", bob.Public.Fingerprint())
 
 	msg := []byte("this is a message of sorts")
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	eg := errgroup.Group{}
 	wait := make(chan bool)
-	go func() {
-		defer wg.Done()
+	eg.Go(func() error {
 		listener, err := net.Listen("tcp", "127.0.0.1:12346")
 		if err != nil {
 			wait <- false
-			t.Fatal(err)
+			return err
 		}
 		defer listener.Close()
 		wait <- true // start client
 
 		conn, err := listener.Accept()
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
 		defer conn.Close()
 
 		bobKX.Conn = conn
 		err = bobKX.Respond()
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
 
 		// read
 		received, err := bobKX.Read()
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
 		if !bytes.Equal(received, msg) {
-			t.Fatalf("message not identical")
+			return fmt.Errorf("message not identical")
 		}
 
 		// write
-		err = bobKX.Write(msg)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		listener.Close()
-	}()
+		return bobKX.Write(msg)
+	})
 
 	ok := <-wait
 	if !ok {
@@ -167,8 +161,9 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 		}
 	}
 
-	wg.Done()
-	wg.Wait()
+	if err := eg.Wait(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestStaticIdentities(t *testing.T) {

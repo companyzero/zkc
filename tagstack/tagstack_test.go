@@ -5,6 +5,7 @@
 package tagstack
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -72,11 +73,14 @@ func TestRace(t *testing.T) {
 	ts := New(testSize)
 
 	c := make(chan uint32, testSize)
+	e := make(chan error, 1)
 	for i := 0; i < testSize; i++ {
 		go func() {
 			x, err := ts.Pop()
 			if err != nil {
-				t.Fatal(err)
+				err = fmt.Errorf("TestRace: ts.Pop failed: %v", err)
+				e <- err
+				return
 			}
 			go func(xx uint32) {
 				r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -84,7 +88,9 @@ func TestRace(t *testing.T) {
 				time.Sleep(time.Duration(wait) * time.Nanosecond)
 				err := ts.Push(xx)
 				if err != nil {
-					t.Fatal(err)
+					err = fmt.Errorf("TestRace: ts.Push failed: %v", err)
+					e <- err
+					return
 				}
 				c <- xx
 			}(x)
@@ -93,14 +99,12 @@ func TestRace(t *testing.T) {
 
 	count := 0
 	for {
-		var tag uint32
 		select {
-		case tag = <-c:
-		case <-time.After(time.Second):
-			t.Fatalf("timeout")
+		case err := <-e:
+			t.Fatal(err)
+		case <-c:
 		}
 		count++
-		_ = tag
 		if count == testSize {
 			break
 		}
