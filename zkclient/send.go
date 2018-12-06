@@ -20,7 +20,7 @@ import (
 // FileMIME returns a file's MIME type.
 func FileMIME(f *os.File) (string, error) {
 	// store location
-	pos, err := f.Seek(0, os.SEEK_CUR)
+	pos, err := f.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return "", err
 	}
@@ -33,7 +33,7 @@ func FileMIME(f *os.File) (string, error) {
 	}
 
 	// reset file pointer
-	_, err = f.Seek(pos, os.SEEK_SET)
+	_, err = f.Seek(pos, io.SeekStart)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +112,7 @@ func (z *ZKC) completeSend(nick string, f *os.File,
 	copy(cn.Digest[:], h.Sum(nil))
 
 	// rewind
-	_, err = f.Seek(0, os.SEEK_SET)
+	_, err = f.Seek(0, io.SeekStart)
 	if err != nil {
 		z.PrintfT(0, "send failed (%v->%v): seek %v",
 			cn.Filename,
