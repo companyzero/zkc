@@ -57,6 +57,8 @@ const (
 	TaggedCmdCache               = "cache"
 	TaggedCmdPush                = "push"
 	TaggedCmdAcknowledge         = "ack"
+	TaggedCmdProxy               = "proxy"
+	TaggedCmdProxyReply          = "proxyreply"
 	TaggedCmdPing                = "ping"
 	TaggedCmdPong                = "pong"
 	TaggedCmdIdentityFind        = "identityfind"
@@ -86,9 +88,12 @@ var (
 // unmodified when replying.  The tag is originated by the sender and shall be
 // unique provided an answer is expected.  The receiver shall not interpret or
 // use the tag in any way.
+// The Cleartext flag indicates that the payload is in clear text. This flag
+// should only be used for proxy commands (e.g. ratchet reset).
 type Message struct {
 	Command   string // discriminator
 	TimeStamp int64  // originator timestamp
+	Cleartext bool   // If set Payload is in clear text, proxy use only
 	Tag       uint32 // client generated tag, shall be unique
 	//followed by Payload []byte
 }
@@ -97,7 +102,7 @@ type Message struct {
 type Empty struct{}
 
 const (
-	ProtocolVersion = 6
+	ProtocolVersion = 7
 )
 
 // Welcome is written immediately following a key exchange.  This command
@@ -234,6 +239,35 @@ type Cache struct {
 	Payload []byte   // encrypted payload
 }
 
+// Proxy is a PRPC that is used to store message on server for later push
+// delivery.  This command must be acknowledged by the remote side.
+// THIS COMMAND IS NOT ENCRYPTED AND IS ONLY TO BE USED DURING EMERGENCIES
+// (like a ratchet reset).
+type Proxy struct {
+	To      [32]byte // recipient identity
+	Payload []byte   // unencrypted payload
+}
+
+// ProxyReply returns with an Error set if an error occurred during delivery.
+type ProxyReply struct {
+	To    [32]byte // recipient identity, returned by server
+	Error string   // Set if an error occurred
+}
+
+// All proxy commands are a uint32 followed by a string. We do this to make
+// decoding easier and since these are emergency commands nothing more should
+// be sent anyway.
+const (
+	ProxyCmdInvalid      = uint32(0)
+	ProxyCmdResetRatchet = uint32(1)
+)
+
+// ProxyCmd is sent in clear text from one client to another.
+type ProxyCmd struct {
+	Command uint32 // Command type
+	Message string // message from other client
+}
+
 // Ping is a PRPC that is used to determine if the server is alive.
 // This command must be acknowledged by the remote side.
 type Ping struct{}
@@ -241,15 +275,7 @@ type Pong struct{}
 
 // client to client commands
 
-// Passthrough is a command that flows from a client through the server to
-// another client.  Payload contains an encrypted CRPC. These commands shall
-// not be cached by the server.
-type Passthrough struct {
-	To      [32]byte // recipient identity
-	Payload []byte   // encrypted payload
-}
-
-// Rendezvous sends a blob to the server. Blob shall be < 4096 and and
+// Rendezvous sends a blob to the server. Blob shall be < 4096 and
 // expiration shall be < 168 (7 * 24).
 type Rendezvous struct {
 	Blob       []byte // data being shared
@@ -260,7 +286,7 @@ type Rendezvous struct {
 // an easy to remember PIN code to identify initial Rendezvous blob.
 type RendezvousReply struct {
 	Token string // Rendezvous token that identifies blob
-	Error string // If an error occured Error will be != ""
+	Error string // If an error occurred Error will be != ""
 }
 
 // RendezvousPull tries to download a previously uploaded blob.
@@ -276,13 +302,18 @@ type RendezvousPullReply struct {
 	Blob  []byte // data reply to previous Rendezvous
 }
 
+// IdentityFind asks the server's directory if the provided bick exists. The
+// server will always return a failure if the nick is not found or if directory
+// services are not enabled.
 type IdentityFind struct {
 	Nick string
 }
 
+// IdentityFindReply contains a public identity if found.
 type IdentityFindReply struct {
-	Error    string
-	Identity zkidentity.PublicIdentity
+	Nick     string                    // Nick that was originally sent in
+	Error    string                    // Set if an error occurred
+	Identity zkidentity.PublicIdentity // Public Identify if Error not set
 }
 
 // IdentityKX contains the long lived public identify and the DH ratchet keys.
@@ -318,8 +349,7 @@ const (
 	CRPCCompZLIB = "zlib"
 
 	// janitor
-	CRPCJanitorRatchetReset = "ratchetreset"
-	CRPCJanitorDeleted      = "deleted"
+	CRPCJanitorDeleted = "deleted"
 )
 
 // CRPC is a client RPC message.

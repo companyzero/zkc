@@ -153,5 +153,5 @@ func (z *ZKC) completeSend(nick string, f *os.File,
 		offset += count
 	}
 
-	z.PrintfT(0, "send completed: %v->%v", cn.Filename, nick)
+	z.FloodfT(nick, "Send completed: %v->%v", cn.Filename, nick)
 }

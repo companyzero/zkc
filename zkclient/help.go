@@ -34,12 +34,12 @@ var (
 	cmdWc            = leader + "wc"
 	cmdW             = leader + "w" // alias for win
 	cmdWin           = leader + "win"
-	cmdReset         = leader + "reset"
 	cmdAddressBook   = leader + "addressbook"
 	cmdAB            = leader + "ab" // alias for addressbook
 	cmdSave          = leader + "save"
 	cmdRestore       = leader + "restore"
 	cmdFind          = leader + "find"
+	cmdResetRatchet  = leader + "reset"
 
 	helpArray = []help{
 		{
@@ -188,21 +188,13 @@ var (
 			},
 		},
 		{
-			command:     cmdReset,
-			usage:       cmdReset + " <nick>",
-			description: "reset ratchet state",
-			long: []string{
-				"Reset ratchet state with another user.  " +
-					"A key exchange must be completed before parties can exchange messages.",
-			},
-		},
-		{
 			command:     cmdAddressBook,
 			usage:       cmdAddressBook + " <del> <nick>",
 			description: "Manipulate address book.",
 			long: []string{
 				"Currently the only supported command is del." +
-					"It is used to permanently remove a nick from the address book.",
+					"It is used to permanently remove a " +
+					"nick from the address book.",
 			},
 		},
 		{
@@ -224,6 +216,16 @@ var (
 			command:     cmdFind,
 			usage:       cmdFind + " <nick>",
 			description: "looks up an identity in server",
+		},
+		{
+			command:     cmdResetRatchet,
+			usage:       cmdResetRatchet + " <nick>",
+			description: "resets a ratchet with a remote user",
+			long: []string{
+				"Reset ratchet state with another user.  " +
+					"A key exchange must be completed " +
+					"before parties can exchange messages.",
+			},
 		},
 	}
 )

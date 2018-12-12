@@ -83,10 +83,12 @@ func (z *ZKS) handleIdentityFind(writer chan *RPCWrapper, msg rpc.Message, nick 
 			Tag:     msg.Tag,
 		},
 	}
-	payload := new(rpc.IdentityFindReply)
+	payload := rpc.IdentityFindReply{
+		Nick: nick,
+	}
 	id, err := z.account.Find(nick)
 	if err != nil {
-		payload.Error = fmt.Sprintf("%v", err) // XXX
+		payload.Error = fmt.Sprintf("nick not found: %v", nick)
 	} else {
 		payload.Identity = *id
 	}

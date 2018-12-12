@@ -72,9 +72,22 @@ func (z *ZKC) addressBookAdd(id zkidentity.PublicIdentity) error {
 
 // addressBookConversation returns an existing conversation from nick.
 func (z *ZKC) addressBookConversation(nick string) (*conversation, int, error) {
+	// disallow self
+	if nick == z.id.Public.Nick {
+		return nil, -1, fmt.Errorf("can't interact with self")
+	}
+
 	// create a new conversation if nick exists
 	id, err := z.ab.FindNick(nick)
 	if err != nil {
+		if z.directory {
+			err = z.find(nick)
+			if err != nil {
+				return nil, -1, fmt.Errorf("nick not found "+
+					"in directory: %v", nick)
+			}
+			return nil, -1, errPendingKX
+		}
 		return nil, -1, fmt.Errorf("nick not found: %v", nick)
 	}
 

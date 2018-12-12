@@ -43,7 +43,8 @@ import (
 )
 
 var (
-	errCert = errors.New("server certificate changed")
+	errCert      = errors.New("server certificate changed")
+	errPendingKX = errors.New("key exchange kicked off")
 )
 
 // updateStatus updates the status bar, lock must be held
@@ -116,6 +117,36 @@ func (z *ZKC) PrintfT(id int, format string, args ...interface{}) {
 
 func (z *ZKC) PrintfTS(id int, ts time.Time, format string, args ...interface{}) {
 	z.printf(id, ts, false, format, args...)
+}
+
+// FloodfT prints to the console and the current window unless an active
+// conversation with the person is in progress. If nick is empty it always
+// prints in the current window.
+func (z *ZKC) FloodfT(nick, format string, args ...interface{}) {
+	// Print to console
+	z.printf(0, time.Now(), true, format, args...)
+
+	// Try to find the proper conversation window
+	z.RLock()
+	//search for active nick
+	for k, v := range z.conversation {
+		if v == nil || k == 0 {
+			continue
+		}
+		if v.nick != nick {
+			continue
+		}
+		z.RUnlock()
+		z.printf(k, time.Now(), true, format, args...)
+		return
+	}
+	active := z.active
+	z.RUnlock()
+
+	// Not found, print in current window if it isn't 0
+	if active != 0 {
+		z.printf(active, time.Now(), true, format, args...)
+	}
 }
 
 func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...interface{}) {
@@ -349,9 +380,7 @@ func (z *ZKC) groupConversation(group string) (*conversation, int, error) {
 	return c, x, nil
 }
 
-func (z *ZKC) getConversation(id [zkidentity.IdentitySize]byte) (*conversation,
-	int, error) {
-
+func (z *ZKC) getConversation(id [zkidentity.IdentitySize]byte) (*conversation, int, error) {
 	// get identity and calculate nick
 	var err error
 	c := &conversation{}
@@ -430,15 +459,16 @@ func (z *ZKC) query(nick string) {
 	}
 	z.RUnlock()
 
-	_, win, err := z.addressBookConversation(nick)
+	// Try group conversation first
+	_, win, err := z.groupConversation(nick)
 	if err != nil {
-		// nick not found, try gc
-		_, win, err = z.groupConversation(nick)
+		// See if it is a person
+		_, win, err = z.addressBookConversation(nick)
 		if err != nil {
-			// gc not found, find nick
-			err = z.find(nick)
-			if err != nil {
-				z.PrintfT(-1, "query: %v", err)
+			z.PrintfT(-1, "%v", err)
+			if err == errPendingKX {
+				z.PrintfT(-1, "If key exchange succeeds you "+
+					"must reissue the query command")
 			}
 			return
 		}
@@ -963,18 +993,25 @@ func (z *ZKC) goOnlineRetry() {
 	}
 }
 
+// nickFromId looks up an ID and returns a nick. If ID is not found it returns
+// an empty string.
+func (z *ZKC) nickFromId(id [zkidentity.IdentitySize]byte) string {
+	i, err := z.ab.FindIdentity(id)
+	if err != nil || i == nil {
+		return ""
+	}
+	return i.Nick
+}
+
 func (z *ZKC) PrintIdentity(id zkidentity.PublicIdentity) {
 	z.PrintfT(0, "found %s (%s), fingerprint %s", id.Nick, id.Name,
 		base64.StdEncoding.EncodeToString(id.Identity[:]))
 }
 
-func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
-	z.Log(0, "initiating kx with %v", id)
-
+func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) error {
 	nc, nk, err := sntrup4591761.Encapsulate(rand.Reader, &id.Key)
 	if err != nil {
-		z.Log(0, "could not encapsulate key: %v", err)
-		return
+		return fmt.Errorf("could not encapsulate key: %v", err)
 	}
 
 	r := ratchet.New(rand.Reader)
@@ -986,8 +1023,7 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
 	kxRatchet := new(ratchet.KeyExchange)
 	err = r.FillKeyExchange(kxRatchet)
 	if err != nil {
-		z.Log(0, "could not setup ratchet key: %v", err)
-		return
+		return fmt.Errorf("could not setup ratchet key: %v", err)
 	}
 
 	idkx := rpc.IdentityKX{
@@ -997,13 +1033,12 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
 	idkxXDR := &bytes.Buffer{}
 	_, err = xdr.Marshal(idkxXDR, idkx)
 	if err != nil {
-		z.Log(0, "could not marshal identityKX: %v", err)
+		return fmt.Errorf("could not marshal identityKX: %v", err)
 	}
 
 	encrypted, nonce, err := blobshare.Encrypt(idkxXDR.Bytes(), nk)
 	if err != nil {
-		z.Log(0, "could not encrypt IdentityKX: %v", err)
-		return
+		return fmt.Errorf("could not encrypt IdentityKX: %v", err)
 	}
 
 	packed := blobshare.PackNonce(nonce, encrypted)
@@ -1011,36 +1046,32 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) {
 	payload = append(payload, nc[:]...)
 	payload = append(payload, packed...)
 
-	z.Log(0, "[InitiateKX]: nk = %v", nk)
-	z.Log(0, "[InitiateKX]: nc = %v", nc)
+	z.Dbg(0, "[InitiateKX]: nk = %v", nk)
+	z.Dbg(0, "[InitiateKX]: nc = %v", nc)
 
 	err = z.cache(id.Identity, payload)
 	if err != nil {
-		z.Log(0, "could not send IdentityKX: %v", err)
-		return
+		return fmt.Errorf("could not send IdentityKX: %v", err)
 	}
 
 	err = z.saveIdentity(id)
 	if err != nil {
-		z.Log(0, "could not save identity: %v", err)
-		return
+		return fmt.Errorf("could not save identity: %v", err)
 	}
 
 	err = z.saveKey(nk)
 	if err != nil {
-		z.Log(0, "could not save key: %v", err)
-		return
+		return fmt.Errorf("could not save key: %v", err)
 	}
 
 	z.ratchetMtx.Lock()
+	defer z.ratchetMtx.Unlock()
 	err = z.updateRatchet(r, true)
 	if err != nil {
-		z.ratchetMtx.Unlock()
-		z.Log(0, "could not save half ratchet: %v", err)
-		return
+		return fmt.Errorf("could not save half ratchet: %v", err)
 	}
-	z.ratchetMtx.Unlock()
-	z.Log(0, "ok")
+
+	return nil
 }
 
 // handleRPC deals with all incoming RPC commands.  It shall be called as a go
@@ -1255,19 +1286,28 @@ func (z *ZKC) handleRPC() {
 
 			err = z.handlePush(message, p)
 			if err != nil {
-				z.Error(idZKC, "handlePush: %v", err)
-
-				// don't return because even though this is
-				// fatal, we are trying to ack so that the
-				// server deletes the command and maybe we can
-				// recover
+				// Try to find nick
 				from := hex.EncodeToString(p.From[:])
 				rid, err2 := z.addressBookFind(p.From)
 				if err2 == nil {
 					from = rid.Nick
 				}
-				ms := fmt.Sprintf("could not handle push "+
-					"command from %v: %v", from, err)
+
+				var ms string
+				switch err.(type) {
+				case *ratchetError:
+					ms = fmt.Sprintf("push ratchet error "+
+						"from %v: %v", from, err)
+				default:
+					ms = fmt.Sprintf("could not handle "+
+						"push command from %v: %v",
+						from, err)
+				}
+
+				// don't return because even though this is
+				// fatal, we are trying to ack so that the
+				// server deletes the command and maybe we can
+				// recover
 				z.Error(idZKC, ms)
 				z.PrintfT(0, REDBOLD+ms+RESET)
 				z.PrintfT(0, "deleting remote message")
@@ -1304,6 +1344,7 @@ func (z *ZKC) handleRPC() {
 			// handle callback
 			if f != nil {
 				z.Dbg(idZKC, "ack tag %v callback", message.Tag)
+				z.PrintfT(idZKC, "ack tag %v callback", message.Tag)
 				go f()
 			}
 
@@ -1315,19 +1356,61 @@ func (z *ZKC) handleRPC() {
 					"IdentityFindReply")
 				return
 			}
-			if r.Error != "" {
-				z.PrintfT(0, "find failed: %v", r.Error)
+
+			if r.Nick == "" {
+				z.PrintfT(0, "Server did not return nick")
 			} else {
-				z.step1IDKX(r.Identity)
+				z.pendingIdentitiesMutex.Lock()
+				delete(z.pendingIdentities, r.Nick)
+				z.pendingIdentitiesMutex.Unlock()
 			}
-			z.pendingIdentitiesMutex.Lock()
-			delete(z.pendingIdentities, r.Identity.Nick)
-			z.pendingIdentitiesMutex.Unlock()
+
 			err = z.tagStack.Push(message.Tag)
 			if err != nil {
 				exitError = fmt.Errorf("IdentityFindReply "+
 					"invalid tag: %v", message.Tag)
 				return
+			}
+
+			if r.Error != "" {
+				// Server error is verbose so just print it
+				z.PrintfT(0, "%v", r.Error)
+			} else {
+				err = z.step1IDKX(r.Identity)
+				if err != nil {
+					z.PrintfT(0, "%v", err)
+				}
+			}
+
+		case rpc.TaggedCmdProxyReply:
+			var p rpc.ProxyReply
+			_, err = xdr.Unmarshal(br, &p)
+			if err != nil {
+				exitError = fmt.Errorf("unmarshal " +
+					"ProxyReply")
+				return
+			}
+
+			err = z.tagStack.Push(message.Tag)
+			if err != nil {
+				exitError = fmt.Errorf("ProxyReply "+
+					"invalid tag: %v", message.Tag)
+				return
+			}
+
+			// Best effort nick
+			nick := z.nickFromId(p.To)
+			n := nick
+			if n != "" {
+				n += " "
+			}
+
+			if p.Error != "" {
+				// Server error is verbose so just print it
+				z.FloodfT(nick, "%v", p.Error)
+			} else {
+				z.FloodfT(nick, REDBOLD+"Awaiting kx %v%x"+RESET,
+					n, p.To)
 			}
 
 		default:
@@ -1509,20 +1592,31 @@ func (z *ZKC) find(nick string) error {
 	if !z.directory {
 		return fmt.Errorf("directory not supported")
 	}
-	if z.pendingIdentities == nil {
-		z.pendingIdentities = make(map[string]*time.Time)
+	if nick == "" {
+		return fmt.Errorf("must provide nick")
 	}
-
-	tag, err := z.tagStack.Pop()
-	if err != nil {
-		return fmt.Errorf("could not obtain tag: %v", err)
+	if nick == z.id.Public.Nick {
+		return fmt.Errorf("can't find self")
+	}
+	_, err := z.ab.FindNick(nick)
+	if err == nil {
+		return fmt.Errorf("nick already known: %v", nick)
 	}
 
 	z.pendingIdentitiesMutex.Lock()
 	defer z.pendingIdentitiesMutex.Unlock()
 
+	if z.pendingIdentities == nil {
+		z.pendingIdentities = make(map[string]*time.Time)
+	}
+
 	if z.pendingIdentities[nick] != nil {
 		return fmt.Errorf("lookup already in progress")
+	}
+
+	tag, err := z.tagStack.Pop()
+	if err != nil {
+		return fmt.Errorf("could not obtain tag: %v", err)
 	}
 
 	z.schedulePRPC(true,
@@ -1536,6 +1630,82 @@ func (z *ZKC) find(nick string) error {
 
 	t := time.Now()
 	z.pendingIdentities[nick] = &t
+
+	return nil
+}
+
+// reset sends an unencrypted proxy message to the server which will be
+// forwarded to the correct user in order to initiate a ratchet reset.
+func (z *ZKC) reset(nick string) error {
+	if !z.isOnline() {
+		return fmt.Errorf("not online")
+	}
+
+	id, err := z.ab.FindNick(nick)
+	if err != nil {
+		return err
+	}
+
+	pr := rpc.ProxyCmd{
+		Command: rpc.ProxyCmdResetRatchet,
+		Message: "reset ratchet initiated by: " +
+			hex.EncodeToString(z.id.Public.Identity[:]),
+	}
+	var bb bytes.Buffer
+	_, err = xdr.Marshal(&bb, pr)
+	if err != nil {
+		return fmt.Errorf("could not marshal ProxyResetRatchet: %v",
+			err)
+	}
+
+	// Pop tag early because we are going to de deleting important files.
+	// If something goes wrong we must push the tab back onto the stack.
+	returnTag := true // assume failure
+	tag, err := z.tagStack.Pop()
+	if err != nil {
+		return fmt.Errorf("could not obtain tag: %v", err)
+	}
+	defer func() {
+		if returnTag {
+			z.tagStack.Push(tag)
+		}
+	}()
+
+	ids := hex.EncodeToString(id.Identity[:])
+	fullPath := path.Join(z.settings.Root, inboundDir, ids)
+
+	// always remove half ratchet
+	os.Remove(path.Join(fullPath, halfRatchetFilename))
+
+	// assert any ratchet file exists for sanity
+	ratchet := path.Join(fullPath, ratchetFilename)
+	_, err = os.Stat(ratchet)
+	if err != nil {
+		return fmt.Errorf("ratchet file does not exists for %v", nick)
+	}
+
+	z.FloodfT(nick, REDBOLD+"Ratchet reset initiated with: %v %v"+RESET,
+		nick, ids)
+
+	// delete ratchets from disk
+	err = os.Remove(ratchet)
+	if err != nil {
+		z.FloodfT(nick, "could not remove ratchet for %v: %v",
+			nick, err)
+	}
+
+	returnTag = false // we no longer need to return the tag
+
+	// try to tell the other side the bad news
+	z.schedulePRPC(true,
+		rpc.Message{
+			Command: rpc.TaggedCmdProxy,
+			Tag:     tag,
+		},
+		rpc.Proxy{
+			To:      id.Identity,
+			Payload: bb.Bytes(),
+		})
 
 	return nil
 }

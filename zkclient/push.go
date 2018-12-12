@@ -25,6 +25,16 @@ import (
 	"github.com/davecgh/go-xdr/xdr2"
 )
 
+// ratchetError is a special error type that is used to determine if a ratchet
+// was wedged.
+type ratchetError struct {
+	err string
+}
+
+func (re *ratchetError) Error() string {
+	return re.err
+}
+
 func (z *ZKC) printID(id *zkidentity.PublicIdentity) {
 	z.PrintfT(-1, "Identity   : %v", id)
 	z.PrintfT(-1, "Fingerprint: %v", id.Fingerprint())
@@ -33,11 +43,11 @@ func (z *ZKC) printID(id *zkidentity.PublicIdentity) {
 }
 
 func (z *ZKC) printKX(id *zkidentity.PublicIdentity) {
-	z.PrintfT(0, "Client to Client Key Exchange complete:")
-	z.PrintfT(0, "Identity   : %v", id)
-	z.PrintfT(0, "Fingerprint: %v", id.Fingerprint())
-	z.PrintfT(0, "Name       : %v", id.Name)
-	z.PrintfT(0, "Nick       : %v", id.Nick)
+	z.FloodfT(id.Nick, "Client to Client Key Exchange complete:")
+	z.FloodfT(id.Nick, "Identity   : %v", id)
+	z.FloodfT(id.Nick, "Fingerprint: %v", id.Fingerprint())
+	z.FloodfT(id.Nick, "Name       : %v", id.Name)
+	z.FloodfT(id.Nick, "Nick       : %v", id.Nick)
 }
 
 func (z *ZKC) step3IDKX(msg rpc.Message, p rpc.Push) error {
@@ -392,6 +402,31 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 		return fmt.Errorf("received message from invalid identity")
 	}
 
+	// See if we are a proxy push that is unencrypted. This is a special
+	// command that should only be used for ratchet resets.
+	if msg.Cleartext {
+		var pc rpc.ProxyCmd
+		brProxy := bytes.NewReader(p.Payload)
+		_, err := xdr.Unmarshal(brProxy, &pc)
+		if err == nil && pc.Command == rpc.ProxyCmdResetRatchet {
+			// We got a ratchet reset command
+			nick := z.nickFromId(p.From)
+			n := nick
+			if n != "" {
+				n += " "
+			}
+			z.FloodfT(nick, REDBOLD+"Received ratchet reset "+
+				"command from: %v%x"+RESET, n, p.From)
+			z.FloodfT(nick, REDBOLD+"Ratchet reset message: "+
+				"%v"+RESET, pc.Message)
+			return z.handleResetRatchet(p.From)
+		} else if err == nil {
+			return fmt.Errorf("Invalid proxy command: %v",
+				pc.Command)
+		}
+		return fmt.Errorf("Can't decode proxy command: %v", err)
+	}
+
 	// see if identity exists
 	if !z.identityExists(p.From) {
 		// step 2 of idkx
@@ -407,16 +442,7 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 	if !z.ratchetExists(p.From) {
 		// step 3 of idkx
 		z.Dbg(idZKC, "step 3 (push) idkx")
-		err := z.step3IDKX(msg, p)
-		if err != nil {
-			return err
-		}
-		id, err := z.loadIdentity(p.From)
-		if err != nil {
-			return err
-		}
-		z.query(id.Nick)
-		return nil
+		return z.step3IDKX(msg, p)
 	}
 
 	//
@@ -435,7 +461,9 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 	decrypted, err := r.Decrypt(p.Payload)
 	if err != nil {
 		z.ratchetMtx.Unlock()
-		return fmt.Errorf("could not decrypt: %v", err)
+		return &ratchetError{
+			err: fmt.Sprintf("could not decrypt: %v", err),
+		}
 	}
 
 	// update ratchet on disk

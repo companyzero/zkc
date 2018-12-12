@@ -97,9 +97,14 @@ func (aw *acceptWindow) Init(w *ttk.Window) {
 	y++
 
 	y++
-	s := fmt.Sprintf("Are you sure you want to continue connecting (yes/no)?")
+	s := fmt.Sprintf("Are you sure you want to continue connecting " +
+		"(yes/no)?")
 	w.AddLabel(ax, ay+y, s)
 	aw.questionInput = w.AddEdit(ax+len(s)+1, ay+y, -2, &aw.question)
+	aw.questionInput.SetAttributes(ttk.Attributes{
+		Fg: termbox.ColorDefault,
+		Bg: termbox.ColorDefault,
+	})
 }
 
 func (aw *acceptWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
