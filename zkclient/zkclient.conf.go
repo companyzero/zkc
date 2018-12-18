@@ -1,8 +1,12 @@
+package main
+
+const (
+	defaultConfigFileContent = `
 # root directory for zkclient settings, logs etc
 root = ~/.zkclient
 
 # print certificate fingerprint
-# tlsverbose = yes
+tlsverbose = yes
 
 # annoy user by beeping on incoming messages
 # beep = yes
@@ -37,3 +41,5 @@ profiler = 127.0.0.1:6061
 nickcolor = bold:white:black
 gcothercolor = bold:green:black
 pmothercolor = bold:cyan:black
+`
+)

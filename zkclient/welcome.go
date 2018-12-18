@@ -138,6 +138,12 @@ func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 		ww.zkc.id.Public.Name = ww.name
 		ww.zkc.id.Public.Nick = ww.nick
 		ww.zkc.serverAddress = ww.server
+		if ww.zkc.id.Public.Name == "" || ww.zkc.id.Public.Nick == "" ||
+			ww.zkc.serverAddress == "" {
+			ww.Status(w, true, "Name, Nick and Server are "+
+				"required fields")
+			return
+		}
 
 		// dial remote
 		ww.Status(w, false, "Dialing %v", ww.server)

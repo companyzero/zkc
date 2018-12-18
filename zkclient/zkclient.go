@@ -17,7 +17,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/user"
 	"path"
 	"runtime"
 	"strconv"
@@ -1992,7 +1991,6 @@ func _main() error {
 	var server *inidb.INIDB
 	var foundServerIdentity bool
 	var foundClientIdentity bool
-	var usr *user.User
 
 	filename := path.Join(z.settings.Root, tools.ZKCServerFilename)
 	server, err = inidb.New(filename, false, 10)
@@ -2016,13 +2014,7 @@ func _main() error {
 
 	// Create new user if it doesn't exist
 	if !foundClientIdentity {
-		// obtain local identity info
-		usr, err = user.Current()
-		if err != nil {
-			return err
-		}
-
-		z.id, err = zkidentity.New(usr.Name, usr.Username)
+		z.id, err = zkidentity.New("", "")
 		if err != nil {
 			// really can't happen
 			return fmt.Errorf("could not create new identity")
@@ -2073,9 +2065,7 @@ func _main() error {
 	if !foundClientIdentity {
 		// create and focus on welcome window
 		ww := &welcomeWindow{
-			name: usr.Name,
-			nick: usr.Username,
-			zkc:  z,
+			zkc: z,
 		}
 		z.ttkWW = ttk.NewWindow(ww)
 		ttk.Focus(z.ttkWW)
