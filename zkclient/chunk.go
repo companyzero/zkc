@@ -67,7 +67,7 @@ func (z *ZKC) doHandleChunkNew(msg rpc.Message, p rpc.Push,
 		return err
 	}
 	// notify user a file transfer is in flight
-	z.PrintfT(0, "File transfer initiated by: %v filename: %v "+
+	z.FloodfT(pid.Nick, "File transfer initiated by: %v filename: %v "+
 		"size: %v description: %v",
 		pid.Nick, cn.Filename, cn.Size, cn.Description)
 
@@ -175,7 +175,7 @@ func (z *ZKC) doHandleChunk(msg rpc.Message, p rpc.Push,
 			return err
 		}
 
-		z.PrintfT(0, "File transfer complete from: %v type: %v "+
+		z.FloodfT(pid.Nick, "File transfer complete from: %v type: %v "+
 			"saved to: %v",
 			pid.Nick,
 			cn.MIME,

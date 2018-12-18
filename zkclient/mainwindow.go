@@ -130,11 +130,10 @@ func (mw *mainWindow) Init(w *ttk.Window) {
 
 	// bottom edit
 	mw.cmdEdit = w.AddEdit(0, -2, 0, &mw.cmd)
-	a := ttk.Attributes{
+	mw.cmdEdit.SetAttributes(ttk.Attributes{
 		Fg: termbox.ColorDefault,
 		Bg: termbox.ColorDefault,
-	}
-	mw.cmdEdit.SetAttributes(a)
+	})
 
 	// 0 is used for main console
 	mw.zkc.Lock()
@@ -203,7 +202,7 @@ func (mw *mainWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 
 		// determine mode
 		switch args[0] {
-		case cmdMsg, cmdM, cmdInfo, cmdReset, cmdQ, cmdQuery:
+		case cmdMsg, cmdM, cmdInfo, cmdResetRatchet, cmdQ, cmdQuery:
 			mw.zkc.completeNickCommandLine(args)
 		case cmdSend:
 			if len(args) == 1 || len(args) == 2 {
@@ -454,10 +453,17 @@ func (mw *mainWindow) action(cmd string) error {
 		}
 
 		c, win, err := mw.zkc.addressBookConversation(args[1])
-		if err != nil {
+		if err == errPendingKX {
+			mw.zkc.PrintfT(-1, "Attempting key exchange "+
+				"with %v", args[1])
+			mw.zkc.PrintfT(-1, "This file will not be "+
+				"delivered, you must resend it.")
+			return nil
+		} else if err != nil {
 			return err
 		}
 		_ = c
+		_ = win
 
 		err = mw.zkc.send(c.id.Identity, args[1], args[2], desc)
 		if err != nil {
@@ -465,7 +471,7 @@ func (mw *mainWindow) action(cmd string) error {
 		}
 
 		// echo
-		mw.zkc.PrintfT(win, "initiated file transfer to %v: %v",
+		mw.zkc.FloodfT(args[1], "Initiated file transfer to %v: %v",
 			args[1], args[2])
 
 		return nil
@@ -540,7 +546,13 @@ func (mw *mainWindow) action(cmd string) error {
 
 		if c == nil {
 			c, win, err = mw.zkc.addressBookConversation(args[1])
-			if err != nil {
+			if err == errPendingKX {
+				mw.zkc.PrintfT(-1, "Attempting key exchange "+
+					"with %v", args[1])
+				mw.zkc.PrintfT(-1, "This message will not be "+
+					"delivered, you must resend it.")
+				return nil
+			} else if err != nil {
 				return err
 			}
 		}
@@ -663,16 +675,6 @@ func (mw *mainWindow) action(cmd string) error {
 	case cmdHelp:
 		return mw.doHelp(args)
 
-	case cmdReset:
-		if len(args) != 2 {
-			return mw.doUsage(args)
-		}
-		err := mw.zkc.reset(args[1])
-		if err != nil {
-			mw.zkc.PrintfT(-1, "reset failed: %v", err)
-		}
-		return nil
-
 	case cmdAddressBook, cmdAB:
 		if len(args) != 3 {
 			return mw.doUsage(args)
@@ -695,6 +697,12 @@ func (mw *mainWindow) action(cmd string) error {
 			return mw.doUsage(args)
 		}
 		return mw.zkc.find(args[1])
+
+	case cmdResetRatchet:
+		if len(args) != 2 {
+			return mw.doUsage(args)
+		}
+		return mw.zkc.reset(args[1])
 	}
 
 	return fmt.Errorf("invalid command: %v", cmd)

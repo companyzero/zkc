@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -48,6 +49,10 @@ type diskMessage struct {
 	From     [zkidentity.IdentitySize]byte
 	Received int64
 	Payload  []byte
+	// Cleartext was added after the fact and is therefore at the end of
+	// the struct for compatability reasons. Default is 0 which means
+	// content is encrypted as it always was prior to this change.
+	Cleartext bool // Content is cleartext when set
 }
 
 // Notification contains the necessary information to notify the caller that a
@@ -60,6 +65,7 @@ type Notification struct {
 	From       [zkidentity.IdentitySize]byte
 	Received   int64 // received time
 	Payload    []byte
+	Cleartext  bool // Set when payload is clear text
 	Identifier string
 	Error      error
 }
@@ -240,10 +246,7 @@ func (a *Account) Pull(id [zkidentity.IdentitySize]byte) error {
 
 // Deliver physicaly drops a message on disk.  It returns the fullpath so that
 // callers can pretty log deliveries.
-func (a *Account) Deliver(to [zkidentity.IdentitySize]byte,
-	from [zkidentity.IdentitySize]byte,
-	payload []byte) (string, error) {
-
+func (a *Account) Deliver(to [zkidentity.IdentitySize]byte, from [zkidentity.IdentitySize]byte, payload []byte, cleartext bool) (string, error) {
 	// get directory
 	cache := a.accountFile(to, CacheDir)
 
@@ -252,9 +255,10 @@ func (a *Account) Deliver(to [zkidentity.IdentitySize]byte,
 
 	// convert to on disk format
 	dm := diskMessage{
-		From:     from,
-		Received: time.Now().Unix(),
-		Payload:  payload,
+		From:      from,
+		Received:  time.Now().Unix(),
+		Payload:   payload,
+		Cleartext: cleartext,
 	}
 	var b bytes.Buffer
 	_, err := xdr.Marshal(&b, dm)
@@ -294,8 +298,7 @@ func (a *Account) Deliver(to [zkidentity.IdentitySize]byte,
 	return fullPath, nil
 }
 
-func (a *Account) Delete(from [zkidentity.IdentitySize]byte,
-	identifier string) error {
+func (a *Account) Delete(from [zkidentity.IdentitySize]byte, identifier string) error {
 
 	a.Lock()
 	defer a.Unlock()
@@ -328,8 +331,7 @@ func (a *Account) Offline(who [zkidentity.IdentitySize]byte) {
 // Online notifies Account that a user has become available.  It reads all
 // undelivered messages of disk and uses the Notification channel to propagate
 // them.
-func (a *Account) Online(who [zkidentity.IdentitySize]byte,
-	ntfn chan *Notification) error {
+func (a *Account) Online(who [zkidentity.IdentitySize]byte, ntfn chan *Notification) error {
 
 	cache := a.accountFile(who, CacheDir)
 
@@ -392,11 +394,18 @@ func (a *Account) Online(who [zkidentity.IdentitySize]byte,
 
 				var dm diskMessage
 				_, err = xdr.Unmarshal(f, &dm)
-				if err != nil {
+				// Special error handling because of prior
+				// upgrade where we added Cleartext to the
+				// diskMessage. A short read is therefore
+				// an error we must ignore.
+				if uerr, ok := err.(*xdr.UnmarshalError); err != nil &&
+					(!ok || uerr.ErrorCode != xdr.ErrIO ||
+						uerr.Err != io.EOF) {
+
 					f.Close()
 					dn.send(&Notification{
-						Error: fmt.Errorf("%v: unmarshal",
-							filename),
+						Error: fmt.Errorf("%v: unmarshal %v",
+							filename, err),
 					})
 					continue
 				}
@@ -408,6 +417,7 @@ func (a *Account) Online(who [zkidentity.IdentitySize]byte,
 					From:       dm.From,
 					Received:   dm.Received,
 					Payload:    dm.Payload,
+					Cleartext:  dm.Cleartext,
 					Identifier: v.Name(),
 				})
 			}

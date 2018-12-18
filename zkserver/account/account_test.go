@@ -5,12 +5,17 @@
 package account
 
 import (
+	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/companyzero/zkc/zkidentity"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-xdr/xdr2"
 )
 
 func newAccount(t *testing.T) (*Account, error) {
@@ -20,6 +25,62 @@ func newAccount(t *testing.T) (*Account, error) {
 	}
 	t.Logf("tmpdir: %v", root)
 	return New(root)
+}
+
+func TestUpgradeDiskMessage(t *testing.T) {
+	// this test verifies that upgrading a disk message works as expected.
+	type diskMessageOld struct {
+		From     [zkidentity.IdentitySize]byte
+		Received int64
+		Payload  []byte
+		// New diskMessage has a boolean here
+	}
+	var from [zkidentity.IdentitySize]byte
+	copy(from[:], []byte("from"))
+	dmo := diskMessageOld{
+		From:     from,
+		Received: time.Now().Unix(),
+		Payload:  []byte("payload"),
+	}
+	var b bytes.Buffer
+	_, err := xdr.Marshal(&b, dmo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var dm diskMessage
+	br := bytes.NewReader(b.Bytes())
+	_, err = xdr.Unmarshal(br, &dm)
+	if uerr, ok := err.(*xdr.UnmarshalError); err != nil && (!ok ||
+		uerr.ErrorCode != xdr.ErrIO || uerr.Err != io.EOF) {
+		t.Fatal(err)
+	}
+	if dmo.From != dm.From || dmo.Received != dm.Received ||
+		!bytes.Equal(dmo.Payload, dm.Payload) || dm.Cleartext {
+		t.Fatalf("corrupt during upgrade: want %v, got %v",
+			spew.Sdump(dmo), spew.Sdump(dm))
+	}
+
+	// Make sure we don't trip on nil
+	err = nil
+	if uerr, ok := err.(*xdr.UnmarshalError); err != nil && (!ok ||
+		uerr.ErrorCode != xdr.ErrIO || uerr.Err != io.EOF) {
+		t.Fatalf("Expected nil")
+	}
+
+	// Make sure we fail with extra data
+	_, err = b.Write([]byte{0xff})
+	if err != nil {
+		t.Fatal(err)
+	}
+	br = bytes.NewReader(b.Bytes())
+	_, err = xdr.Unmarshal(br, &dm)
+	if uerr, ok := err.(*xdr.UnmarshalError); err != nil && (!ok ||
+		uerr.ErrorCode != xdr.ErrIO || uerr.Err != io.EOF) {
+		t.Log("Got the correct error")
+	} else {
+		t.Fatal(err)
+	}
 }
 
 func TestCreate(t *testing.T) {
@@ -58,7 +119,8 @@ func TestDeliver(t *testing.T) {
 	}
 
 	// 0
-	id, err := a.Deliver(to.Identity, from.Identity, []byte("payload0"))
+	id, err := a.Deliver(to.Identity, from.Identity, []byte("payload0"),
+		false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +130,8 @@ func TestDeliver(t *testing.T) {
 	}
 
 	// 1
-	id, err = a.Deliver(to.Identity, from.Identity, []byte("payload1"))
+	id, err = a.Deliver(to.Identity, from.Identity, []byte("payload1"),
+		false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +141,8 @@ func TestDeliver(t *testing.T) {
 	}
 
 	// 1
-	id, err = a.Deliver(to.Identity, from.Identity, []byte("payload2"))
+	id, err = a.Deliver(to.Identity, from.Identity, []byte("payload2"),
+		false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,11 +229,11 @@ func TestDeleteDoesntExist(t *testing.T) {
 //	}
 //
 //	// deliver message
-//	id, err := a.Deliver(to.Identity, from.Identity, []byte("payload0"))
+//	id, err := a.Deliver(to.Identity, from.Identity, []byte("payload0"), false)
 //	if err != nil {
 //		t.Fatal(err)
 //	}
-//	id2, err := a.Deliver(from.Identity, to.Identity, []byte("payload1"))
+//	id2, err := a.Deliver(from.Identity, to.Identity, []byte("payload1"), false)
 //	if err != nil {
 //		t.Fatal(err)
 //	}

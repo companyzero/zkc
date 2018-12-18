@@ -248,8 +248,9 @@ func (z *ZKS) sessionNtfn(sc *sessionContext) {
 			// translate notification into msg
 			r := RPCWrapper{
 				Message: rpc.Message{
-					Command: rpc.TaggedCmdPush,
-					Tag:     tag,
+					Command:   rpc.TaggedCmdPush,
+					Cleartext: n.Cleartext,
+					Tag:       tag,
 				},
 				Payload: rpc.Push{
 					From:     n.From,
@@ -484,6 +485,17 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 			err = z.handleIdentityFind(sc.writer, message, i.Nick)
 			if err != nil {
 				return fmt.Errorf("handleIdentityFind: %v", err)
+			}
+
+		case rpc.TaggedCmdProxy:
+			var p rpc.Proxy
+			_, err = xdr.Unmarshal(br, &p)
+			if err != nil {
+				return fmt.Errorf("unmarshal Proxy failed")
+			}
+			err = z.handleProxy(sc.writer, kx, message, p)
+			if err != nil {
+				return fmt.Errorf("handleProxy: %v", err)
 			}
 
 		default:

@@ -204,8 +204,7 @@ func (z *ZKC) queueDepth() (*queueDepth, error) {
 	return <-z.queueW, nil
 }
 
-func (z *ZKC) scheduleCRPCCB(hi bool, id *[zkidentity.IdentitySize]byte,
-	payload interface{}, f func()) {
+func (z *ZKC) scheduleCRPCCB(hi bool, id *[zkidentity.IdentitySize]byte, payload interface{}, f func()) {
 
 	m := wireMsg{
 		id:       id,
@@ -222,8 +221,7 @@ func (z *ZKC) scheduleCRPCCB(hi bool, id *[zkidentity.IdentitySize]byte,
 	//z.Dbg(idSnd, "sending CRPC done")
 }
 
-func (z *ZKC) scheduleCRPC(hi bool, id *[zkidentity.IdentitySize]byte,
-	payload interface{}) {
+func (z *ZKC) scheduleCRPC(hi bool, id *[zkidentity.IdentitySize]byte, payload interface{}) {
 
 	m := wireMsg{
 		id:      id,
@@ -432,8 +430,7 @@ func (z *ZKC) isOnline() bool {
 	return z.online
 }
 
-func (z *ZKC) cacheCRPC(id [zkidentity.IdentitySize]byte, payload interface{},
-	f func()) error {
+func (z *ZKC) cacheCRPC(id [zkidentity.IdentitySize]byte, payload interface{}, f func()) error {
 	// best effort to detect if we are offline
 	if !z.isOnline() {
 		return fmt.Errorf("not online")

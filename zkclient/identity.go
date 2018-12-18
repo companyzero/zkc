@@ -133,8 +133,8 @@ func (z *ZKC) loadRatchet(id [zkidentity.IdentitySize]byte,
 func (z *ZKC) updateRatchet(r *ratchet.Ratchet, half bool) error {
 	state := r.Marshal(time.Now(), 31*24*time.Hour)
 
-	//z.Dbg(idZKC, "updateRatchet: start")
-	//defer z.Dbg(idZKC, "updateRatchet: end")
+	z.Dbg(idZKC, "updateRatchet: start")
+	defer z.Dbg(idZKC, "updateRatchet: end")
 
 	var rf string
 	if half {
@@ -142,6 +142,7 @@ func (z *ZKC) updateRatchet(r *ratchet.Ratchet, half bool) error {
 	} else {
 		rf = ratchetFilename
 	}
+	z.Dbg(idZKC, "updateRatchet: %v", rf)
 
 	// save to tempfile
 	ids := hex.EncodeToString(r.TheirIdentityPublic[:])
@@ -157,6 +158,7 @@ func (z *ZKC) updateRatchet(r *ratchet.Ratchet, half bool) error {
 		f.Close()
 		return fmt.Errorf("could not marshal ratchet")
 	}
+	f.Sync()
 	f.Close()
 
 	// rename tempfile to actual file
