@@ -8,8 +8,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -18,6 +19,12 @@ import (
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/mitchellh/go-homedir"
 	"github.com/vaughan0/go-ini"
+)
+
+const (
+	defaultZKClientDir  = ".zkclient"
+	defaultZKClientLog  = "zkclient.log"
+	defaultZKClientConf = "zkclient.conf"
 )
 
 var (
@@ -116,13 +123,14 @@ func ObtainSettings() (*Settings, error) {
 		Home: home,
 
 		// default
-		Root:       path.Join("~", ".zkclient"),
+		Root:       filepath.Join("~", defaultZKClientDir),
 		TLSVerbose: false,
 		Beep:       false,
 
 		// log
-		SaveHistory:    false,
-		LogFile:        path.Join("~", ".zkclient", "zkclient.log"),
+		SaveHistory: false,
+		LogFile: filepath.Join("~", defaultZKClientDir,
+			defaultZKClientLog),
 		TimeFormat:     "15:04:05",
 		LongTimeFormat: "2006-01-02 15:04:05",
 		Debug:          false,
@@ -134,8 +142,9 @@ func ObtainSettings() (*Settings, error) {
 	}
 
 	// config file
-	filename := flag.String("cfg", path.Join(s.Home, ".zkclient",
-		"zkclient.conf"), "config file")
+	defaultConfFile := filepath.Join(s.Home, defaultZKClientDir,
+		defaultZKClientConf)
+	filename := flag.String("cfg", defaultConfFile, "config file")
 	version := flag.Bool("version", false, "show version")
 	flag.Parse()
 
@@ -145,13 +154,31 @@ func ObtainSettings() (*Settings, error) {
 		os.Exit(0)
 	}
 
-	// make sure conf isn't a dir
+	// see if we are running for the first time with defaults
+
 	fi, err := os.Stat(*filename)
 	if err != nil {
-		return nil, err
-	}
-	if fi.IsDir() {
-		return nil, fmt.Errorf("not a valid configuration file")
+		if os.IsNotExist(err) && *filename == defaultConfFile {
+			fmt.Printf("Initial run, creating default config: %v\n",
+				defaultConfFile)
+			// We are running defaults so create dir and a conf file
+			err = os.MkdirAll(filepath.Dir(defaultConfFile), 0700)
+			if err != nil {
+				return nil, err
+			}
+			err = ioutil.WriteFile(defaultConfFile,
+				[]byte(defaultConfigFileContent), 0700)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		// make sure conf isn't a dir
+		if fi.IsDir() {
+			return nil, fmt.Errorf("not a valid configuration file")
+		}
 	}
 
 	// parse file
