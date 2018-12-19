@@ -213,12 +213,11 @@ e.g. for 64-bit Linux
 
 3. Import the ZKC Release Signing Key in GnuPG.
    ```
-   $ gpg --keyserver keys.gnupg.net --recv-keys 0x14B9CD80
-      gpg: requesting key 14B9CD80 from hkp server keys.gnupg.net
-      gpg: /home/user/.gnupg/trustdb.gpg: trustdb created
-      gpg: key 7608AF04: public key "zkc Release Signing Key <release@zkc.companyzero.com>" imported
+   $ gpg  --keyserver hkps://pgp.mit.edu --recv-key 0x14B9CD80
+      gpg: requesting key 14B9CD80 from hkps server pgp.mit.edu
+      gpg: key 511E9D66: public key "zkc Release Signing Key <release@zkc.companyzero.com>" imported
       gpg: Total number processed: 1
-      gpg: imported: 1 (RSA: 1)
+      gpg:               imported: 1  (RSA: 1)
    ```
 4. Verify the signature for the file manifest is valid and created by
 the zkc Release Signing Key.
