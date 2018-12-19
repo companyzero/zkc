@@ -6,6 +6,8 @@ github.com/companyzero/ttk v0.0.0-20181203152906-42f9cd9db0b1 h1:DhvsRx1vj0DcR8D
 github.com/companyzero/ttk v0.0.0-20181203152906-42f9cd9db0b1/go.mod h1:/p9LD5J6oSjM2aq91LNIvOeQGaTqD9KAJdDkISLq6O4=
 github.com/companyzero/ttk v0.0.0-20181219190539-6aa38fb89898 h1:dy/ngKYWwHUPLTKS2bDVcR5IuPR3lueVY9CqhxBg1GA=
 github.com/companyzero/ttk v0.0.0-20181219190539-6aa38fb89898/go.mod h1:/p9LD5J6oSjM2aq91LNIvOeQGaTqD9KAJdDkISLq6O4=
+github.com/companyzero/ttk v0.0.0-20181219201045-f414e6d9e737 h1:kIVq8Ea46sjFhbbMvauCBen0nci7K6Se+osRIvrThMc=
+github.com/companyzero/ttk v0.0.0-20181219201045-f414e6d9e737/go.mod h1:/p9LD5J6oSjM2aq91LNIvOeQGaTqD9KAJdDkISLq6O4=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

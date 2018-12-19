@@ -3,7 +3,7 @@ module github.com/companyzero/zkc
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/companyzero/sntrup4591761 v0.0.0-20170925131231-f6d504b86dc0
-	github.com/companyzero/ttk v0.0.0-20181219190539-6aa38fb89898
+	github.com/companyzero/ttk v0.0.0-20181219201045-f414e6d9e737
 	github.com/davecgh/go-spew v1.1.1
 	github.com/davecgh/go-xdr v0.0.0-20161123171359-e6a2ba005892
 	github.com/marcopeereboom/goutil v0.0.0-20151009174051-30a0823e951a

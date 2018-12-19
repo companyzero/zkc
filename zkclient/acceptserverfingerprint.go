@@ -83,11 +83,18 @@ func (aw *acceptWindow) Init(w *ttk.Window) {
 		Bg: termbox.ColorBlue,
 	})
 
-	w.AddLabel(ax, ay+y, "The authenticity of host %v (%v) can't be "+
-		"established.", aw.host, aw.conn.RemoteAddr())
+	l := w.AddLabel(ax, ay+y, "Authenticity of host CANNOT be established!")
+	l.SetAttributes(ttk.Attributes{
+		Fg: termbox.ColorRed,
+		Bg: termbox.ColorDefault,
+	})
 	y += 2
+	w.AddLabel(ax, ay+y, "Host       : %v", aw.host)
+	y += 1
+	w.AddLabel(ax, ay+y, "IP address : %v", aw.conn.RemoteAddr())
+	y += 1
 	w.AddLabel(ax, ay+y, "Server name: %v", aw.pid.Name)
-	y++
+	y += 2
 	cert := aw.cs.PeerCertificates[0].Raw
 	w.AddLabel(ax, ay+y, "Outer server fingerprint: %v",
 		tools.Fingerprint(cert))
@@ -101,10 +108,6 @@ func (aw *acceptWindow) Init(w *ttk.Window) {
 		"(yes/no)?")
 	w.AddLabel(ax, ay+y, s)
 	aw.questionInput = w.AddEdit(ax+len(s)+1, ay+y, -2, &aw.question)
-	aw.questionInput.SetAttributes(ttk.Attributes{
-		Fg: termbox.ColorDefault,
-		Bg: termbox.ColorDefault,
-	})
 }
 
 func (aw *acceptWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
