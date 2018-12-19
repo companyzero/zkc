@@ -90,8 +90,9 @@ func differentDay(x, y time.Time) bool {
 		x.Year() != y.Year()
 }
 
-// updateTS updates the timestamp of a conversation. Lock must be held.
-func (z *ZKC) updateTS(id int, ts time.Time) {
+// printFirstDay prints a first or day changed message and updates the
+// timestamp of a conversation if update is true. Lock must be held.
+func (z *ZKC) printFirstDay(id int, ts time.Time, update bool) {
 	var msg string
 	var c *conversation = z.conversation[id]
 
@@ -107,7 +108,9 @@ func (z *ZKC) updateTS(id int, ts time.Time) {
 		z.log(id, "%v %s", ts.Format(z.settings.LongTimeFormat), msg)
 	}
 
-	c.lastMsg = ts
+	if update {
+		c.lastMsg = ts
+	}
 }
 
 func (z *ZKC) PrintfT(id int, format string, args ...interface{}) {
@@ -156,9 +159,7 @@ func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...
 			id = z.active
 		}
 		if id < len(z.conversation) && z.conversation[id] != nil {
-			if !localTs {
-				z.updateTS(id, ts)
-			}
+			z.printFirstDay(id, ts, localTs)
 			if z.active != id {
 				// We do these gymnastics in order to print a
 				// separator line where conversation left off.
