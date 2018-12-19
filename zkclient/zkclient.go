@@ -159,13 +159,28 @@ func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...
 			if !localTs {
 				z.updateTS(id, ts)
 			}
+			if z.active != id {
+				// We do these gymnastics in order to print a
+				// separator line where conversation left off.
+				//
+				if z.conversation[id].console.Len() != 0 &&
+					id != 0 && !z.conversation[id].dirty {
+					t := fmt.Sprintf("%v ",
+						ts.Format(z.settings.TimeFormat))
+					r := z.conversation[id].console.Width() - len(t)
+					if r <= 0 {
+						// assume normal terminal width
+						r = 80 - len(t)
+					}
+					z.conversation[id].console.Append("%v%v",
+						t, strings.Repeat("=", r))
+				}
+				z.conversation[id].dirty = true
+			}
 			z.conversation[id].console.Append("%v %v",
 				ts.Format(z.settings.TimeFormat),
 				output)
 			z.conversation[id].console.Render()
-			if z.active != id {
-				z.conversation[id].dirty = true
-			}
 		}
 
 		s := z.calculateStatus()
@@ -268,7 +283,7 @@ type conversation struct {
 	nick      string
 	dirty     bool
 	group     bool      // when set it is a group chat
-	mentioned bool      // set when user nick is mentiond in group chat
+	mentioned bool      // set when user nick is mentioned in group chat
 	lastMsg   time.Time // stamp of last received msg
 }
 
