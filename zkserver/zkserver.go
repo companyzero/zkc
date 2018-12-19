@@ -341,7 +341,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 		// OpenBSD does not support per socket TCP KEEPALIVES So
 		// for now we ping on the client every 10 seconds and we
 		// try to read those aggresively.  We'll cope in the
-		// client with agressive reconnects.  This really is
+		// client with aggressive reconnects.  This really is
 		// ugly as sin.
 		//
 		// Ideally this crap goes away and we use proper TCP for

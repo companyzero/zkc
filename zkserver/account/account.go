@@ -50,7 +50,7 @@ type diskMessage struct {
 	Received int64
 	Payload  []byte
 	// Cleartext was added after the fact and is therefore at the end of
-	// the struct for compatability reasons. Default is 0 which means
+	// the struct for compatibility reasons. Default is 0 which means
 	// content is encrypted as it always was prior to this change.
 	Cleartext bool // Content is cleartext when set
 }
@@ -244,7 +244,7 @@ func (a *Account) Pull(id [zkidentity.IdentitySize]byte) error {
 	return nil
 }
 
-// Deliver physicaly drops a message on disk.  It returns the fullpath so that
+// Deliver physically drops a message on disk.  It returns the fullpath so that
 // callers can pretty log deliveries.
 func (a *Account) Deliver(to [zkidentity.IdentitySize]byte, from [zkidentity.IdentitySize]byte, payload []byte, cleartext bool) (string, error) {
 	// get directory

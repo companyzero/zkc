@@ -1055,9 +1055,7 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) error {
 	}
 
 	packed := blobshare.PackNonce(nonce, encrypted)
-	payload := make([]byte, 0)
-	payload = append(payload, nc[:]...)
-	payload = append(payload, packed...)
+	payload := append(nc[:], packed...)
 
 	z.Dbg(0, "[InitiateKX]: nk = %v", nk)
 	z.Dbg(0, "[InitiateKX]: nc = %v", nc)

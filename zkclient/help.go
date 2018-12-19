@@ -47,7 +47,7 @@ var (
 			usage:       cmdAcceptnewcert,
 			description: "accept new TLS certificate if it changed",
 			long: []string{
-				"If a remote server changed its certificate a warning message can popup (if tlsverbose = yes in configuration file).  This command should be run to explicitely accept the new certificate as valid.  If tlsverbose is disabled then no message will ever popup and all certificate changes are ignored.",
+				"If a remote server changed its certificate a warning message can popup (if tlsverbose = yes in configuration file).  This command should be run to explicitly accept the new certificate as valid.  If tlsverbose is disabled then no message will ever popup and all certificate changes are ignored.",
 				"",
 				"Ignoring the TLS certificate is acceptable because of the additional session key exchange that runs inside the TLS tunnel.  TLS is only used as untrusted transport.  The option exists in order to catch unexpected certificate changes in a high security environment.",
 			},
