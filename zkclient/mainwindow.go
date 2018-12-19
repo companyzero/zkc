@@ -277,6 +277,9 @@ func (mw *mainWindow) welcomeMessage() {
 
 	mw.zkc.PrintfT(0, "Welcome to Zero Knowledge Communications!")
 	mw.zkc.PrintfT(0, "")
+	mw.zkc.PrintfT(0, "zkclient %s (%s) protocol version %d\n",
+		zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
+	mw.zkc.PrintfT(0, "")
 	mw.zkc.PrintfT(0, "Your fingerprint is: %v",
 		mw.zkc.id.Public.Fingerprint())
 }
