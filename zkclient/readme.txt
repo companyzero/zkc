@@ -40,5 +40,8 @@ ctrl-u, PgUp	Page up
 ctrl-d, PgDn	Page down
 ctrl-t		Top
 ctrl-b		Bottom
+ctrl-p		Previous window
+ctrl-n		Next window
+Esc-<N>		Go to window N
 UpArrow		Previous history item
 DownArrow	Next history item
