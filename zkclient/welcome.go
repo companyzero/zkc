@@ -110,7 +110,7 @@ func (ww *welcomeWindow) Init(w *ttk.Window) {
 	y++
 	w.AddLabel(ax, ay+y, "Name is your actual name or alias and it is known to the server.")
 	y++
-	w.AddLabel(ax, ay+y, "Nick is your prefered short name, e.g. jd for John Doe")
+	w.AddLabel(ax, ay+y, "Nick is your preferred short name, e.g. jd for John Doe")
 	y++
 	w.AddLabel(ax, ay+y, "Server must contain a full URL to a server.")
 

@@ -100,23 +100,22 @@ func (z *ZKC) completeNickCommandLine(args []string) {
 func (z *ZKC) completeDir(at string) string {
 	if z.cctx == nil || z.cctx.mode != modeFile {
 		// setup completion array
-		a := z.ab.All()
-		c := &completion{
-			all:      make([]string, 0, len(a)),
-			mode:     modeFile,
-			previous: -1,
-		}
 		ef, err := homedir.Expand(at)
 		if err != nil {
 			z.cctx = nil
 			return ""
 		}
 		at = ef
+
 		// TODO: check err
 		files, _ := filepath.Glob(ef + string(os.PathSeparator) + "*")
-		c.all = append(c.all, files...)
-		sort.Strings(c.all)
+		sort.Strings(files)
 
+		c := &completion{
+			all:      files,
+			mode:     modeFile,
+			previous: -1,
+		}
 		z.cctx = c
 	}
 
