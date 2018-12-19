@@ -223,8 +223,10 @@ var (
 			description: "resets a ratchet with a remote user",
 			long: []string{
 				"Reset ratchet state with another user.  " +
-					"A key exchange must be completed " +
-					"before parties can exchange messages.",
+					"A ratchet KX will be initiated by " +
+					"the other side and it must complete " +
+					"before parties can exchange " +
+					"messages again.",
 			},
 		},
 	}

@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -275,6 +276,9 @@ func (mw *mainWindow) welcomeMessage() {
 	mw.zkc.Unlock()
 
 	mw.zkc.PrintfT(0, "Welcome to Zero Knowledge Communications!")
+	mw.zkc.PrintfT(0, "")
+	mw.zkc.PrintfT(0, "zkclient %s (%s) protocol version %d\n",
+		zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
 	mw.zkc.PrintfT(0, "")
 	mw.zkc.PrintfT(0, "Your fingerprint is: %v",
 		mw.zkc.id.Public.Fingerprint())
@@ -668,8 +672,9 @@ func (mw *mainWindow) action(cmd string) error {
 		return nil
 
 	case cmdVersion:
-		mw.zkc.PrintfT(-1, "Version: %v, RPC Protocol: %v",
-			zkutil.Version(), rpc.ProtocolVersion)
+		mw.zkc.PrintfT(-1, "zkclient %s (%s) protocol version %d\n",
+			zkutil.Version(), runtime.Version(),
+			rpc.ProtocolVersion)
 		return nil
 
 	case cmdHelp:

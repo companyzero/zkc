@@ -21,12 +21,6 @@ import (
 	"github.com/vaughan0/go-ini"
 )
 
-const (
-	defaultZKClientDir  = ".zkclient"
-	defaultZKClientLog  = "zkclient.log"
-	defaultZKClientConf = "zkclient.conf"
-)
-
 var (
 	ErrIniNotFound = errors.New("not found")
 )
@@ -123,14 +117,14 @@ func ObtainSettings() (*Settings, error) {
 		Home: home,
 
 		// default
-		Root:       filepath.Join("~", defaultZKClientDir),
-		TLSVerbose: false,
+		Root:       filepath.Join("~", zkutil.DefaultZKClientDir),
+		TLSVerbose: true,
 		Beep:       false,
 
 		// log
 		SaveHistory: false,
-		LogFile: filepath.Join("~", defaultZKClientDir,
-			defaultZKClientLog),
+		LogFile: filepath.Join("~", zkutil.DefaultZKClientDir,
+			zkutil.DefaultZKClientLog),
 		TimeFormat:     "15:04:05",
 		LongTimeFormat: "2006-01-02 15:04:05",
 		Debug:          false,
@@ -142,8 +136,8 @@ func ObtainSettings() (*Settings, error) {
 	}
 
 	// config file
-	defaultConfFile := filepath.Join(s.Home, defaultZKClientDir,
-		defaultZKClientConf)
+	defaultConfFile := filepath.Join(s.Home, zkutil.DefaultZKClientDir,
+		zkutil.DefaultZKClientConf)
 	filename := flag.String("cfg", defaultConfFile, "config file")
 	version := flag.Bool("version", false, "show version")
 	flag.Parse()

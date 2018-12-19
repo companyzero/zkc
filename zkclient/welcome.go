@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	defaultStatus = "hit enter on Token field to create account"
+	defaultStatus = "hit enter on Token field to create account, ctrl-q to quit"
 )
 
 type welcomeWindow struct {
@@ -123,7 +123,7 @@ func (ww *welcomeWindow) KeyHandler(w *ttk.Window, k ttk.Key) {
 	case termbox.KeyArrowUp:
 		k.Widget.KeyHandler(termbox.Event{Key: termbox.KeyEnter})
 		w.FocusPrevious()
-	case termbox.KeyArrowDown:
+	case termbox.KeyArrowDown, termbox.KeyTab:
 		// simulate key enter to save off text from entry
 		k.Widget.KeyHandler(termbox.Event{Key: termbox.KeyEnter})
 		w.FocusNext()
