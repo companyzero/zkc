@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -668,8 +669,9 @@ func (mw *mainWindow) action(cmd string) error {
 		return nil
 
 	case cmdVersion:
-		mw.zkc.PrintfT(-1, "Version: %v, RPC Protocol: %v",
-			zkutil.Version(), rpc.ProtocolVersion)
+		mw.zkc.PrintfT(-1, "zkclient %s (%s) protocol version %d\n",
+			zkutil.Version(), runtime.Version(),
+			rpc.ProtocolVersion)
 		return nil
 
 	case cmdHelp:
