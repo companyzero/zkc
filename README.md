@@ -62,6 +62,18 @@ The remaining items in the config file are pretty self explanatory.
 zkclient is an irssi look-alike communication client.  Users of irssi will find
 it's interface familiar.
 
+If zkclient is started for the first time it will create a default directory
+and configuration file in ```~/.zkclient/zkclient.conf```. If you wish to make
+changes to the config file you must exit the program, edit the configuration
+file and restart zkclient.
+
+Versions greater than 0.3.0 can export a default config file using the
+following method:
+```bash
+$ zkclient -export /tmp/zkclient.conf
+exporting config file to: /tmp/zkclient.conf
+```
+
 Create a zkclient directory and copy the config file in place and then edit the
 config file.
 ```bash

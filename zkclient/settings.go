@@ -139,12 +139,23 @@ func ObtainSettings() (*Settings, error) {
 	defaultConfFile := filepath.Join(s.Home, zkutil.DefaultZKClientDir,
 		zkutil.DefaultZKClientConf)
 	filename := flag.String("cfg", defaultConfFile, "config file")
+	export := flag.String("export", "", "export config file")
 	version := flag.Bool("version", false, "show version")
 	flag.Parse()
 
 	if *version {
 		fmt.Fprintf(os.Stderr, "zkclient %s (%s) protocol version %d\n",
 			zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
+		os.Exit(0)
+	}
+
+	if *export != "" {
+		fmt.Printf("exporting config file to: %v\n", *export)
+		err = ioutil.WriteFile(*export,
+			[]byte(defaultConfigFileContent), 0700)
+		if err != nil {
+			return nil, err
+		}
 		os.Exit(0)
 	}
 
