@@ -166,7 +166,7 @@ $  zkservertoken
 
 Binary releases are provided for common operating systems and architectures:
 
-https://decred.org/downloads
+https://github.com/companyzero/zkc/releases
 
 ### Build from source (all platforms)
 
