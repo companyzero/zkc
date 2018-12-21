@@ -11,6 +11,9 @@ tlsverbose = yes
 # annoy user by beeping on incoming messages
 # beep = yes
 
+# Draw separator to show where conversation left off
+# separator = yes
+
 # logging and debug
 [log]
 
