@@ -163,7 +163,8 @@ func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...
 			if z.active != id {
 				// We do these gymnastics in order to print a
 				// separator line where conversation left off.
-				if z.conversation[id].console.Len() != 0 &&
+				if z.settings.Separator &&
+					z.conversation[id].console.Len() != 0 &&
 					id != 0 && !z.conversation[id].dirty {
 					t := fmt.Sprintf("%v ",
 						ts.Format(z.settings.TimeFormat))

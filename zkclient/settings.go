@@ -32,6 +32,7 @@ type Settings struct {
 	Root       string // root directory for zkclient
 	TLSVerbose bool   // display outer TLS information
 	Beep       bool   // annoy people when message comes in
+	Separator  bool   // add line where conversation left off
 
 	// log section
 	SaveHistory    bool
@@ -120,6 +121,7 @@ func ObtainSettings() (*Settings, error) {
 		Root:       filepath.Join("~", zkutil.DefaultZKClientDir),
 		TLSVerbose: true,
 		Beep:       false,
+		Separator:  false,
 
 		// log
 		SaveHistory: false,
@@ -210,6 +212,12 @@ func ObtainSettings() (*Settings, error) {
 
 	// Beep
 	err = iniBool(cfg, &s.Beep, "", "beep")
+	if err != nil && err != ErrIniNotFound {
+		return nil, err
+	}
+
+	// Separator
+	err = iniBool(cfg, &s.Separator, "", "separator")
 	if err != nil && err != ErrIniNotFound {
 		return nil, err
 	}
