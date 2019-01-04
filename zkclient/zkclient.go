@@ -90,9 +90,8 @@ func differentDay(x, y time.Time) bool {
 		x.Year() != y.Year()
 }
 
-// printFirstDay prints a first or day changed message and updates the
-// timestamp of a conversation if update is true. Lock must be held.
-func (z *ZKC) printFirstDay(id int, ts time.Time, update bool) {
+// updateTS updates the timestamp of a conversation. Lock must be held.
+func (z *ZKC) updateTS(id int, ts time.Time) {
 	var msg string
 	var c *conversation = z.conversation[id]
 
@@ -108,9 +107,7 @@ func (z *ZKC) printFirstDay(id int, ts time.Time, update bool) {
 		z.log(id, "%v %s", ts.Format(z.settings.LongTimeFormat), msg)
 	}
 
-	if update {
-		c.lastMsg = ts
-	}
+	c.lastMsg = ts
 }
 
 func (z *ZKC) PrintfT(id int, format string, args ...interface{}) {
@@ -154,34 +151,38 @@ func (z *ZKC) FloodfT(nick, format string, args ...interface{}) {
 func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...interface{}) {
 	output := fmt.Sprintf(format, args...)
 	ttk.Queue(func() {
-		z.RLock()
+		z.Lock()
 		if id < 0 {
 			id = z.active
 		}
 		if id < len(z.conversation) && z.conversation[id] != nil {
-			z.printFirstDay(id, ts, localTs)
-			if z.active != id {
-				// We do these gymnastics in order to print a
-				// separator line where conversation left off.
-				if z.settings.Separator &&
-					z.conversation[id].console.Len() != 0 &&
-					id != 0 && !z.conversation[id].dirty {
-					t := fmt.Sprintf("%v ",
-						ts.Format(z.settings.TimeFormat))
-					r := z.conversation[id].console.Width() - len(t)
-					if r <= 0 {
-						// assume normal terminal width
-						r = 80 - len(t)
-					}
-					z.conversation[id].console.Append("%v%v",
-						t, strings.Repeat("-", r))
+			// We do these gymnastics in order to print a
+			// separator line where conversation left off.
+			if z.active != id && z.settings.Separator &&
+				z.conversation[id].console.Len() != 0 &&
+				id != 0 && !z.conversation[id].separator {
+				t := fmt.Sprintf("%v ",
+					ts.Format(z.settings.TimeFormat))
+				r := z.conversation[id].console.Width() - len(t)
+				if r <= 0 {
+					// assume normal terminal width
+					r = 80 - len(t)
 				}
-				z.conversation[id].dirty = true
+				z.conversation[id].console.Append("%v%v",
+					t, strings.Repeat("-", r))
+				z.conversation[id].separator = true
+			}
+
+			if !localTs {
+				z.updateTS(id, ts)
 			}
 			z.conversation[id].console.Append("%v %v",
 				ts.Format(z.settings.TimeFormat),
 				output)
 			z.conversation[id].console.Render()
+			if z.active != id {
+				z.conversation[id].dirty = true
+			}
 		}
 
 		s := z.calculateStatus()
@@ -191,7 +192,7 @@ func (z *ZKC) printf(id int, ts time.Time, localTs bool, format string, args ...
 		z.log(id, "%v %v", ts.Format(z.settings.LongTimeFormat),
 			output)
 
-		z.RUnlock()
+		z.Unlock()
 		ttk.Flush()
 	})
 }
@@ -259,6 +260,7 @@ func (z *ZKC) focus(id int) {
 		}
 		z.active = id
 		z.conversation[id].dirty = false
+		z.conversation[id].separator = false
 		z.conversation[id].mentioned = false
 		z.conversation[id].console.Visibility(ttk.VisibilityShow)
 
@@ -283,6 +285,7 @@ type conversation struct {
 	id        *zkidentity.PublicIdentity
 	nick      string
 	dirty     bool
+	separator bool
 	group     bool      // when set it is a group chat
 	mentioned bool      // set when user nick is mentioned in group chat
 	lastMsg   time.Time // stamp of last received msg
