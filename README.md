@@ -203,7 +203,7 @@ Building or updating from source requires the following build dependencies:
   Installation instructions can be found at https://git-scm.com or
   https://gitforwindows.org.
 
-To build and install from a checked-out repo, run `go install . ./cmd/...` in
+To build and install from a checked-out repo, run `go install ./...` in
 the repo's root directory.  Some notes:
 
 * Set the `GO111MODULE=on` environment variable if using Go 1.11 and building
