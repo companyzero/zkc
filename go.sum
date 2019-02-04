@@ -2,8 +2,8 @@ github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7I
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/companyzero/sntrup4591761 v0.0.0-20170925131231-f6d504b86dc0 h1:Sg/e2scbLZW8cmDYwPGsMgk211JKfHmVvx48vsJajSc=
 github.com/companyzero/sntrup4591761 v0.0.0-20170925131231-f6d504b86dc0/go.mod h1:mqO8bOUjFw4AUP6X5CFkXV4IZJXnDy7oghYhbVsDb2M=
-github.com/companyzero/ttk v0.0.0-20190104164708-f6ad7dd162f2 h1:aPWcVXTTLdxQUQY8QkvC9NPiT2dVe/uSxJF107TzGQo=
-github.com/companyzero/ttk v0.0.0-20190104164708-f6ad7dd162f2/go.mod h1:+9ycJRL7brOS117ot9yBy5fv6GObzgR0S4Hj1jfMiyc=
+github.com/companyzero/ttk v0.0.0-20190204172049-0b227f5567b9 h1:JVJmfJC1QDC8cRGToQ2w/UHLpAUXk+djHEtfT0WY9Us=
+github.com/companyzero/ttk v0.0.0-20190204172049-0b227f5567b9/go.mod h1:WvcAacQC+4qlWYIqyI9oN3nu8pvGZj2npUb4HfgtA0U=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-xdr v0.0.0-20161123171359-e6a2ba005892 h1:qg9VbHo1TlL0KDM0vYvBG9EY0X0Yku5WYIPoFWt8f6o=
@@ -14,8 +14,8 @@ github.com/mattn/go-runewidth v0.0.4 h1:2BvfKmzob6Bmd4YsL0zygOqfdFnK7GR4QL06Do4/
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/mitchellh/go-homedir v1.0.0 h1:vKb8ShqSby24Yrqr/yDYkuFz8d0WUjys40rvnGC8aR0=
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
-github.com/nsf/termbox-go v0.0.0-20190104133558-0938b5187e61 h1:pEzZYac/uQ4cgaN1Q/UYZg+ZtCSWz2HQ3rvl8MeN9MA=
-github.com/nsf/termbox-go v0.0.0-20190104133558-0938b5187e61/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
+github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d h1:x3S6kxmy49zXVVyhcnrFqxvNVCBPb2KZ9hV2RBdS840=
+github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec h1:DGmKwyZwEB8dI7tbLt/I/gQuP559o/0FrAkHKlQM/Ks=
