@@ -14,19 +14,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agl/ed25519"
 	"github.com/companyzero/sntrup4591761"
 	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/ratchet/disk"
 	"github.com/davecgh/go-xdr/xdr2"
 	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 type client struct {
 	PrivateKey     [sntrup4591761.PrivateKeySize]byte
 	PublicKey      [sntrup4591761.PublicKeySize]byte
-	SigningPrivate [64]byte
-	SigningPublic  [32]byte
+	SigningPrivate [ed25519.PrivateKeySize]byte
+	SigningPublic  [ed25519.PublicKeySize]byte
 	Identity       [sha256.Size]byte
 }
 

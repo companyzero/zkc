@@ -14,9 +14,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/agl/ed25519"
 	"github.com/companyzero/sntrup4591761"
 	"github.com/davecgh/go-xdr/xdr2"
+	"golang.org/x/crypto/ed25519"
 )
 
 var (
@@ -119,8 +119,8 @@ func (fi *FullIdentity) RecalculateDigest() error {
 	copy(fi.Public.Digest[:], d.Sum(nil))
 
 	// sign and verify
-	signature := ed25519.Sign(&fi.PrivateSigKey, fi.Public.Digest[:])
-	copy(fi.Public.Signature[:], signature[:])
+	signature := ed25519.Sign(fi.PrivateSigKey[:], fi.Public.Digest[:])
+	copy(fi.Public.Signature[:], signature)
 	if !fi.Public.Verify() {
 		return fmt.Errorf("could not verify public signature")
 	}
@@ -129,12 +129,13 @@ func (fi *FullIdentity) RecalculateDigest() error {
 }
 
 func (fi *FullIdentity) SignMessage(message []byte) [ed25519.SignatureSize]byte {
-	signature := ed25519.Sign(&fi.PrivateSigKey, message)
-	return *signature
+	var sig [ed25519.SignatureSize]byte
+	copy(sig[:], ed25519.Sign(fi.PrivateSigKey[:], message))
+	return sig
 }
 
 func (p PublicIdentity) VerifyMessage(msg []byte, sig [ed25519.SignatureSize]byte) bool {
-	return ed25519.Verify(&p.SigKey, msg, &sig)
+	return ed25519.Verify(p.SigKey[:], msg, sig[:])
 }
 
 func (p PublicIdentity) String() string {
@@ -155,7 +156,7 @@ func (p *PublicIdentity) Verify() bool {
 	if !bytes.Equal(p.Digest[:], d.Sum(nil)) {
 		return false
 	}
-	return ed25519.Verify(&p.SigKey, p.Digest[:], &p.Signature)
+	return ed25519.Verify(p.SigKey[:], p.Digest[:], p.Signature[:])
 }
 
 func (p *PublicIdentity) Marshal() ([]byte, error) {

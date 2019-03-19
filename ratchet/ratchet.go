@@ -21,6 +21,7 @@ import (
 	"github.com/companyzero/zkc/ratchet/disk"
 
 	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
@@ -43,9 +44,9 @@ const (
 // Ratchet contains the per-contact, crypto state.
 type Ratchet struct {
 	MyPrivateKey        *[sntrup4591761.PrivateKeySize]byte
-	MySigningPublic     *[32]byte
-	TheirIdentityPublic *[32]byte
-	TheirSigningPublic  *[32]byte
+	MySigningPublic     *[ed25519.PublicKeySize]byte
+	TheirIdentityPublic *[sha256.Size]byte
+	TheirSigningPublic  *[ed25519.PublicKeySize]byte
 	TheirPublicKey      *[sntrup4591761.PublicKeySize]byte
 
 	// Now is an optional function that will be used to get the current
