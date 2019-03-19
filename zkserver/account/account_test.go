@@ -61,13 +61,6 @@ func TestUpgradeDiskMessage(t *testing.T) {
 			spew.Sdump(dmo), spew.Sdump(dm))
 	}
 
-	// Make sure we don't trip on nil
-	err = nil
-	if uerr, ok := err.(*xdr.UnmarshalError); err != nil && (!ok ||
-		uerr.ErrorCode != xdr.ErrIO || uerr.Err != io.EOF) {
-		t.Fatalf("Expected nil")
-	}
-
 	// Make sure we fail with extra data
 	_, err = b.Write([]byte{0xff})
 	if err != nil {
