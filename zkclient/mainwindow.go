@@ -661,11 +661,9 @@ func (mw *mainWindow) action(cmd string) error {
 		qd, err := mw.zkc.queueDepth()
 		if err != nil {
 			// just exit
-		} else {
-			if qd.hi != 0 || qd.lo != 0 {
-				return fmt.Errorf("queue not empty, to " +
-					"force quit type: /quit force")
-			}
+		} else if qd.hi != 0 || qd.lo != 0 {
+			return fmt.Errorf("queue not empty, to " +
+				"force quit type: /quit force")
 		}
 
 		close(mw.quitC)

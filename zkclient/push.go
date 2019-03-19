@@ -300,7 +300,7 @@ func (z *ZKC) step2IDKX2(msg rpc.Message, p rpc.Push) error {
 	z.Log(0, "[step2IDKX]: payload = %v", p.Payload)
 
 	c := new([sntrup4591761.CiphertextSize]byte)
-	copy(c[:], p.Payload[:])
+	copy(c[:], p.Payload)
 	k, ok := sntrup4591761.Decapsulate(c, &z.id.PrivateKey)
 	if ok != 1 {
 		return fmt.Errorf("could not decap key")

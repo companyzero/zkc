@@ -176,7 +176,7 @@ func validateECDHpoint(p []byte) error {
 
 // CompleteKeyExchange takes a KeyExchange message from the other party and
 // establishes the ratchet.
-func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, Alice bool) error {
+func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, alice bool) error {
 	k, ok := sntrup4591761.Decapsulate(&kx.Cipher, r.MyPrivateKey)
 	if ok != 1 {
 		return errors.New("CompleteKeyExchange: decapsulation error")
@@ -202,7 +202,7 @@ func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, Alice bool) error {
 	}
 
 	d := sha256.New()
-	if Alice {
+	if alice {
 		d.Write(r.MyHalf[:])
 		d.Write(r.TheirHalf[:])
 	} else {
@@ -212,16 +212,16 @@ func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, Alice bool) error {
 	sharedKey := d.Sum(nil)
 
 	keyMaterial := make([]byte, 0, 32*5)
-	keyMaterial = append(keyMaterial, sharedKey[:]...)
+	keyMaterial = append(keyMaterial, sharedKey...)
 	h := hmac.New(sha256.New, keyMaterial)
 	deriveKey(&r.rootKey, rootKeyLabel, h)
 
-	if Alice {
+	if alice {
 		deriveKey(&r.recvHeaderKey, headerKeyLabel, h)
 		deriveKey(&r.nextSendHeaderKey, sendHeaderKeyLabel, h)
 		deriveKey(&r.nextRecvHeaderKey, nextRecvHeaderKeyLabel, h)
 		deriveKey(&r.recvChainKey, chainKeyLabel, h)
-		copy(r.recvRatchetPublic[:], ratchetPublic[:])
+		copy(r.recvRatchetPublic[:], ratchetPublic)
 	} else {
 		deriveKey(&r.sendHeaderKey, headerKeyLabel, h)
 		deriveKey(&r.nextRecvHeaderKey, sendHeaderKeyLabel, h)
@@ -230,7 +230,7 @@ func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, Alice bool) error {
 		copy(r.sendRatchetPrivate[:], r.kxPrivate[:])
 	}
 
-	r.ratchet = Alice
+	r.ratchet = alice
 	r.kxPrivate = nil
 
 	return nil

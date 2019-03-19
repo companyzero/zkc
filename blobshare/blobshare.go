@@ -56,8 +56,8 @@ func DeriveKey(password []byte, salt *[32]byte) (*[32]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	copy(key[:], dk[:])
-	zero(dk[:])
+	copy(key[:], dk)
+	zero(dk)
 
 	return &key, nil
 }
