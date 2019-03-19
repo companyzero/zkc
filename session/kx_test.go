@@ -153,11 +153,9 @@ func testKX(t *testing.T, alice, bob *zkidentity.FullIdentity) {
 		if err != nil {
 			t.Error(err)
 			// fallthrough
-		} else {
-			if !bytes.Equal(received, msg) {
-				t.Errorf("message not identical")
-				// fallthrough
-			}
+		} else if !bytes.Equal(received, msg) {
+			t.Errorf("message not identical")
+			// fallthrough
 		}
 	}
 

@@ -82,12 +82,13 @@ func (z *ZKC) completeNick(at string) string {
 
 func (z *ZKC) completeNickCommandLine(args []string) {
 	var c string
-	if len(args) == 1 {
+	switch len(args) {
+	case 1:
 		c = ""
 		return
-	} else if len(args) == 2 {
+	case 2:
 		c = args[1]
-	} else {
+	default:
 		return
 	}
 	// complete nick

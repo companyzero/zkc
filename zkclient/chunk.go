@@ -45,10 +45,8 @@ func (z *ZKC) doHandleChunkNew(msg rpc.Message, p rpc.Push,
 		return err
 	}
 	defer f.Close()
+
 	e := xdr.NewEncoder(f)
-	if err != nil {
-		return err
-	}
 	_, err = e.Encode(cn)
 	if err != nil {
 		return err

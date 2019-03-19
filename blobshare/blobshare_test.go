@@ -40,7 +40,7 @@ func TestPackSaltNonce(t *testing.T) {
 	if !bytes.Equal(nonce[:], nonceR[:]) {
 		t.Fatalf("corrupted nonce")
 	}
-	if !bytes.Equal(data[:], dataR[:]) {
+	if !bytes.Equal(data[:], dataR) {
 		t.Fatalf("corrupted data")
 	}
 }
@@ -66,7 +66,7 @@ func TestPackNonce(t *testing.T) {
 	if !bytes.Equal(nonce[:], nonceR[:]) {
 		t.Fatalf("corrupted nonce")
 	}
-	if !bytes.Equal(data[:], dataR[:]) {
+	if !bytes.Equal(data[:], dataR) {
 		t.Fatalf("corrupted data")
 	}
 }

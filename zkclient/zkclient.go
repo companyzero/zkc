@@ -210,15 +210,16 @@ func (z *ZKC) log(id int, format string, args ...interface{}) {
 		return
 	}
 	var filename string
-	if id == 0 {
+	switch {
+	case id == 0:
 		// console
 		z.Log(id, format, args...)
 		return
-	} else if z.conversation[id].group {
+	case z.conversation[id].group:
 		filename = path.Join(z.settings.Root,
 			logsDir, "groupchat."+z.conversation[id].nick+"."+
 				server+".log")
-	} else {
+	default:
 		filename = path.Join(z.settings.Root,
 			logsDir,
 			z.conversation[id].nick+"."+server+"."+
@@ -1783,7 +1784,7 @@ func (z *ZKC) _updateGroupList(id [zkidentity.IdentitySize]byte,
 		return fmt.Errorf("group not found: %v", gl.Name)
 	}
 
-	if len(group.Members) <= 0 {
+	if len(group.Members) == 0 {
 		return fmt.Errorf("partial group")
 	}
 	if !bytes.Equal(group.Members[0][:], id[:]) {

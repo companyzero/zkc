@@ -191,9 +191,7 @@ func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
 			return nil, fmt.Errorf("could not find user: %v", err)
 		}
 		a.Unlock()
-		if err != nil {
-			return nil, fmt.Errorf("could not lock user: %v", err)
-		}
+
 		listed, err := user.Get("", "listed")
 		if err == nil && listed == "1" {
 			b64, err := user.Get("", "identity")
