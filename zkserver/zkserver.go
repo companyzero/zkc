@@ -32,7 +32,7 @@ import (
 	"github.com/companyzero/zkc/zkserver/settings"
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (
@@ -659,8 +659,7 @@ func (z *ZKS) listen() error {
 				continue
 			}
 
-			conn.(*net.TCPConn).SetKeepAlive(true)
-			conn.(*net.TCPConn).SetKeepAlivePeriod(time.Second)
+			conn.(*net.TCPConn).SetKeepAlive(false)
 			conn = tls.Server(conn, &config)
 
 			go z.preSession(conn)
