@@ -368,6 +368,11 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		z.account.Offline(rid)
 
+		// mark session offline
+		z.Lock()
+		delete(z.sessions, rids)
+		z.Unlock()
+
 		z.Dbg(idS, "handleSession exit: %v", rids)
 	}()
 
