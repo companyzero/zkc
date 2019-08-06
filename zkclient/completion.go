@@ -84,7 +84,6 @@ func (z *ZKC) completeNickCommandLine(args []string) {
 	var c string
 	switch len(args) {
 	case 1:
-		c = ""
 		return
 	case 2:
 		c = args[1]

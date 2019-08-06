@@ -18,13 +18,21 @@ import (
 
 	"github.com/companyzero/zkc/inidb"
 	"github.com/companyzero/zkc/zkidentity"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (
 	CacheDir             = "cache"
 	UserIdentityFilename = "user.ini"
 )
+
+type ErrAlreadyOnline struct {
+	err error
+}
+
+func (e ErrAlreadyOnline) Error() string {
+	return e.err.Error()
+}
 
 // Account opaque type that handles account related services.
 type Account struct {
@@ -315,15 +323,22 @@ func (a *Account) Delete(from [zkidentity.IdentitySize]byte, identifier string) 
 	return nil
 }
 
-func (a *Account) Offline(who [zkidentity.IdentitySize]byte) {
-	a.Lock()
-	defer a.Unlock()
-
+// offline closes open quit channels and deletes an account from the online
+// map. This function must be called WITH the mutex held.
+func (a *Account) offline(who [zkidentity.IdentitySize]byte) {
 	dn, found := a.online[who]
 	if found {
 		close(dn.quit)
-		delete(a.online, who)
 	}
+	delete(a.online, who)
+}
+
+// Offline knocks a user offline. This function must be called WITHOUT the
+// mutex held.
+func (a *Account) Offline(who [zkidentity.IdentitySize]byte) {
+	a.Lock()
+	defer a.Unlock()
+	a.offline(who)
 }
 
 // Online notifies Account that a user has become available.  It reads all
@@ -333,12 +348,14 @@ func (a *Account) Online(who [zkidentity.IdentitySize]byte, ntfn chan *Notificat
 
 	cache := a.accountFile(who, CacheDir)
 
-	// make sure we are online
 	a.Lock()
 	_, found := a.online[who]
 	if found {
 		a.Unlock()
-		return fmt.Errorf("already online: %v ", hex.EncodeToString(who[:]))
+		return ErrAlreadyOnline{
+			err: fmt.Errorf("already online: %v ",
+				hex.EncodeToString(who[:])),
+		}
 	}
 
 	dn := diskNotification{

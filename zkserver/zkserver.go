@@ -32,7 +32,7 @@ import (
 	"github.com/companyzero/zkc/zkserver/settings"
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (
@@ -61,7 +61,24 @@ type RPCWrapper struct {
 	Identifier string
 }
 
+type sessionContext struct {
+	ntfn     chan *account.Notification
+	writer   chan *RPCWrapper
+	quit     chan struct{}
+	kx       *session.KX
+	rids     string
+	tagStack *tagstack.TagStack
+
+	// protected
+	sync.Mutex
+	tagMessage []*RPCWrapper
+}
+
 type ZKS struct {
+	sync.Mutex
+	sessions map[string]*sessionContext
+
+	// Not mutex entries
 	*debug.Debug
 	account  *account.Account
 	settings *settings.Settings
@@ -199,7 +216,7 @@ func (z *ZKS) sessionWriter(sc *sessionContext) {
 
 func (z *ZKS) sessionNtfn(sc *sessionContext) {
 	defer func() {
-		z.T(idS, "sessionNtfn exit: %v", sc.rids)
+		z.Dbg(idS, "sessionNtfn exit: %v", sc.rids)
 
 		// close underlying connection in order to fail read
 		sc.kx.Close()
@@ -272,20 +289,6 @@ func (z *ZKS) sessionNtfn(sc *sessionContext) {
 	}
 }
 
-type sessionContext struct {
-	ntfn   chan *account.Notification
-	writer chan *RPCWrapper
-	quit   chan struct{}
-	//done     chan bool
-	kx       *session.KX
-	rids     string
-	tagStack *tagstack.TagStack
-
-	// protected
-	sync.Mutex
-	tagMessage []*RPCWrapper
-}
-
 // handleSession deals with incoming RPC calls.  For now treat all errors as
 // critical and return which in turns shuts down the connection.
 func (z *ZKS) handleSession(kx *session.KX) error {
@@ -309,15 +312,47 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 	// register identity
 	err := z.account.Online(rid, sc.ntfn)
 	if err != nil {
+		// If the account is already online we are knocking it offline.
+		// This may be annoying for users that have two clients open
+		// but it fixes the issue where phantom server connections
+		// remain online preventing the client from connecting to the
+		// server altogether.
+		if _, ok := err.(account.ErrAlreadyOnline); ok {
+			z.Dbg(idS, "handleSession forced offline: %v", rids)
+			z.Lock()
+			if oldSc, ok := z.sessions[rids]; ok {
+				// Closing the connection should knock
+				// everything offline.
+				oldSc.kx.Close()
+				delete(z.sessions, rids)
+			} else {
+				// This should not happen.
+				z.Unlock()
+				return fmt.Errorf("handleSession: account "+
+					"online without a session %v", rids)
+			}
+			z.Unlock()
+		}
+
+		// Regardless of the failure we return an error in order to
+		// give the server the opportunity to close the connection and
+		// settle down.
 		return fmt.Errorf("handleSession: %v %v", rids, err)
 	}
+
+	// mark session online
+	z.Lock()
+	z.sessions[rids] = &sc
+	z.Unlock()
+
 	z.Dbg(idS, "handleSession account online: %v", rids)
 
 	// populate identity in directory
 	if z.settings.Directory {
 		err := z.account.Push(rid)
 		if err != nil {
-			z.Dbg(idS, "handleSession: Push(%v) = %v", rids, err)
+			return fmt.Errorf("handleSession: Push(%v) = %v",
+				rids, err)
 		}
 	}
 
@@ -331,6 +366,11 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 		close(sc.quit)
 
 		z.account.Offline(rid)
+
+		// mark session offline
+		z.Lock()
+		delete(z.sessions, rids)
+		z.Unlock()
 
 		z.Dbg(idS, "handleSession exit: %v", rids)
 	}()
@@ -659,8 +699,7 @@ func (z *ZKS) listen() error {
 				continue
 			}
 
-			conn.(*net.TCPConn).SetKeepAlive(true)
-			conn.(*net.TCPConn).SetKeepAlivePeriod(time.Second)
+			conn.(*net.TCPConn).SetKeepAlive(false)
 			conn = tls.Server(conn, &config)
 
 			go z.preSession(conn)
@@ -671,7 +710,9 @@ func (z *ZKS) listen() error {
 }
 
 func _main() error {
-	z := &ZKS{}
+	z := &ZKS{
+		sessions: make(map[string]*sessionContext),
+	}
 
 	// flags and settings
 	var err error
