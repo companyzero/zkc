@@ -320,14 +320,13 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 		if _, ok := err.(account.ErrAlreadyOnline); ok {
 			z.Dbg(idS, "handleSession forced offline: %v", rids)
 			z.Lock()
-			oldSc, ok := z.sessions[rids]
-			if ok {
+			if oldSc, ok := z.sessions[rids]; ok {
 				// Closing the connection should knock
 				// everything offline.
 				oldSc.kx.Close()
 				delete(z.sessions, rids)
 			} else {
-				// XXX wtf
+				// This should not happen.
 				z.Unlock()
 				return fmt.Errorf("handleSession: account "+
 					"online without a session %v", rids)
