@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -227,17 +228,25 @@ func (z *ZKC) gcKick(args []string) error {
 	}
 
 	// find nick or identity
-	id, err := z.ab.FindNick(args[3])
+	nick := strings.Trim(args[3], " ")
+	id, err := z.ab.FindNick(nick)
 	if err != nil {
-		i, e := hex.DecodeString(args[3])
+		// try to find identity
+		i, e := hex.DecodeString(nick)
 		if e != nil {
-			return err
+			return fmt.Errorf("nick not found: %v %v", nick, e)
 		}
-		var ii [zkidentity.IdentitySize]byte
+		if len(i) != sha256.Size {
+			return fmt.Errorf("not a valid identity: %v", nick)
+		}
+		var ii [sha256.Size]byte
 		copy(ii[:], i)
 		id, err = z.ab.FindIdentity(ii)
 		if err != nil {
-			return err
+			// identity not found so synthesize one to perform a
+			// kick anyway
+			id = &zkidentity.PublicIdentity{}
+			copy(id.Identity[:], ii[:])
 		}
 	}
 
