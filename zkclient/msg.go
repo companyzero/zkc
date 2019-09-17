@@ -17,7 +17,7 @@ import (
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (
@@ -445,9 +445,9 @@ func (z *ZKC) cacheCRPC(id [zkidentity.IdentitySize]byte, payload interface{}, f
 		// This error is special, we have not completed KX with remote.
 		// We can also not return failure here because there is no way
 		// to reschedule this.
-		z.PrintfT(-1, REDBOLD+"Message cannot be delivered: %v"+RESET,
+		z.PrintfT(0, REDBOLD+"Message cannot be delivered: %v"+RESET,
 			err)
-		z.PrintfT(-1, REDBOLD+"Make sure that you complete KX with: %v"+
+		z.PrintfT(0, REDBOLD+"Make sure that you complete KX with: %v"+
 			RESET, hex.EncodeToString(id[:]))
 		return nil
 	}
