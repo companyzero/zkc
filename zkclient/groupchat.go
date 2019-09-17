@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,7 +17,7 @@ import (
 
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const validLetters = "abcdefghijklmnopqrstuvwyz" +
@@ -222,13 +223,22 @@ func (z *ZKC) gcJoin(args []string) error {
 
 func (z *ZKC) gcKick(args []string) error {
 	if len(args) != 4 {
-		return fmt.Errorf("usage: /gc kick <group> <nick>")
+		return fmt.Errorf("usage: /gc kick <group> <nick>|<identity>")
 	}
 
-	// find nick
+	// find nick or identity
 	id, err := z.ab.FindNick(args[3])
 	if err != nil {
-		return err
+		i, e := hex.DecodeString(args[3])
+		if e != nil {
+			return err
+		}
+		var ii [zkidentity.IdentitySize]byte
+		copy(ii[:], i)
+		id, err = z.ab.FindIdentity(ii)
+		if err != nil {
+			return err
+		}
 	}
 
 	// remove from group
