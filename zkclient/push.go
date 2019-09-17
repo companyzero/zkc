@@ -22,7 +22,7 @@ import (
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 // ratchetError is a special error type that is used to determine if a ratchet
@@ -1177,8 +1177,7 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 			gm.Name)
 	}
 	if gc.Generation != gm.Generation {
-		z.Unlock()
-		return fmt.Errorf("invalid generation (%v != %v) group chat %v",
+		z.PrintfT(0, "invalid generation (%v != %v) group chat %v",
 			gc.Generation, gm.Generation, gm.Name)
 	}
 	z.Unlock()
