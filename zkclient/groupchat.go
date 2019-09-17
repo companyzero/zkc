@@ -228,7 +228,7 @@ func (z *ZKC) gcKick(args []string) error {
 	}
 
 	// find nick or identity
-	nick := strings.Trim(args[3], " ")
+	nick := strings.TrimSpace(args[3])
 	id, err := z.ab.FindNick(nick)
 	if err != nil {
 		// try to find identity
