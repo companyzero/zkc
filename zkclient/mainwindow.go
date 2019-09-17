@@ -21,7 +21,7 @@ import (
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkutil"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
@@ -40,7 +40,8 @@ var (
 	statusBG = ttk.ColorBlue  // default status background
 
 	RESET, REDBOLD, CYANBOLD, GREENBOLD, WHITEBOLD string // colors
-	MAGENTABOLD, YELLOWBOLD                        string
+	MAGENTABOLD                                    string
+	// YELLOWBOLD string
 
 	STATUSWHITEBOLD, STATUSCYAN, STATUSRESET string // status colors
 	STATUSMAGENTABOLD                        string
@@ -53,7 +54,7 @@ func init() {
 	GREENBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorGreen, ttk.AttrNA)
 	WHITEBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorWhite, ttk.AttrNA)
 	MAGENTABOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorMagenta, ttk.AttrNA)
-	YELLOWBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorYellow, ttk.AttrNA)
+	//YELLOWBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorYellow, ttk.AttrNA)
 
 	STATUSWHITEBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorWhite, statusBG)
 	STATUSCYAN, _ = ttk.Color(ttk.AttrNA, ttk.ColorCyan, statusBG)
