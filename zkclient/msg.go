@@ -283,6 +283,12 @@ func (z *ZKC) compress(payload interface{}) ([]byte, string, error) {
 			return nil, "",
 				fmt.Errorf("could not marshal group list")
 		}
+	case rpc.GroupUpdate:
+		_, err = xdr.Marshal(&bb, p)
+		if err != nil {
+			return nil, "",
+				fmt.Errorf("could not marshal group update")
+		}
 
 	case rpc.GroupMessage:
 		_, err = xdr.Marshal(&bb, p)

@@ -548,6 +548,7 @@ func (z *ZKC) gcUpdate(args []string) error {
 	got := 0                    // acks seen
 	want := len(gc.Members) - 1 // acks required
 	f := func() {
+		z.Dbg(idZKC, "gcUpdate: callback %v %v", got, want)
 		z.Lock()
 		defer z.Unlock()
 
@@ -556,8 +557,6 @@ func (z *ZKC) gcUpdate(args []string) error {
 		if got != want {
 			return
 		}
-
-		z.Dbg(idZKC, "gcUpdate: callback")
 
 		// find conversation
 		var (
