@@ -337,8 +337,8 @@ const (
 	CRPCCmdGroupPart      = "grouppart"
 	CRPCCmdGroupKill      = "groupkill"
 	CRPCCmdGroupKick      = "groupkick"
+	CRPCCmdGroupUpdate    = "groupupdate"
 	CRPCCmdGroupList      = "grouplist"
-	CRPCCmdGroupListGet   = "grouplistget" // no struct used
 	CRPCCmdGroupMessage   = "groupmessage"
 	CRPCCmdChunkNew       = "chunknew"
 	CRPCCmdChunk          = "chunk"
@@ -409,6 +409,13 @@ type GroupKick struct {
 	Reason       string                        // why member was kicked
 	Parted       bool                          // kicked/parted
 	NewGroupList GroupList                     // new GroupList
+}
+
+// GroupUpdate is a forced update from the admin. Thi can be used in case of
+// gc' generation getting out of sync.
+type GroupUpdate struct {
+	Reason       string    // why member was kicked
+	NewGroupList GroupList // new GroupList
 }
 
 // GroupList, currently we detect spoofing by ensuring the origin of the

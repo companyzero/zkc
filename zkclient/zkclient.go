@@ -37,7 +37,7 @@ import (
 	"github.com/companyzero/zkc/zkclient/addressbook"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
@@ -1791,14 +1791,11 @@ func (z *ZKC) _updateGroupList(id [zkidentity.IdentitySize]byte,
 		return errNotAdmin
 	}
 
-	// make sure generation is moving forward
+	// Warn if generation is no moving forward
 	if gl.Generation <= group.Generation {
 		z.Warn(idRPC, "received illegal grouplist generation: %v %v %v",
 			gl.Name,
 			group.Generation,
-			gl.Generation)
-
-		return fmt.Errorf("invalid generation: %v <= group.Generation",
 			gl.Generation)
 	}
 

@@ -377,6 +377,8 @@ func (z *ZKC) crpc(r *ratchet.Ratchet, payload interface{}) ([]byte, error) {
 		cmd.Command = rpc.CRPCCmdGroupJoin
 	case rpc.GroupList:
 		cmd.Command = rpc.CRPCCmdGroupList
+	case rpc.GroupUpdate:
+		cmd.Command = rpc.CRPCCmdGroupUpdate
 	case rpc.GroupMessage:
 		cmd.Command = rpc.CRPCCmdGroupMessage
 	case rpc.GroupPart:

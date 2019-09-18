@@ -607,6 +607,22 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 
 		return z.handleGroupList(msg, p, gl)
 
+	case rpc.CRPCCmdGroupUpdate:
+		var gu rpc.GroupUpdate
+		_, err = xdr.Unmarshal(rd, &gu)
+		if err != nil {
+			return fmt.Errorf("unmarshal group chat update")
+		}
+		if z.settings.Debug {
+			z.Dbg(idZKC, "%T%v%v%v",
+				gu,
+				spew.Sdump(msg),
+				spew.Sdump(&p.From),
+				spew.Sdump(gu))
+		}
+
+		return z.handleGroupUpdate(msg, p, gu)
+
 	case rpc.CRPCCmdGroupMessage:
 		var gm rpc.GroupMessage
 		_, err = xdr.Unmarshal(rd, &gm)
@@ -1157,6 +1173,32 @@ func (z *ZKC) handleGroupList(msg rpc.Message, p rpc.Push,
 	if err != nil {
 		z.PrintfT(0, "could not update group chat list: %v %v"+
 			z.settings.GcColor+gl.Name+RESET,
+			err)
+	}
+
+	return nil
+}
+
+func (z *ZKC) handleGroupUpdate(msg rpc.Message, p rpc.Push,
+	gu rpc.GroupUpdate) error {
+
+	z.PrintfT(0, "Received group chat update (%v): %v",
+		gu.NewGroupList.Generation,
+		z.settings.GcColor+gu.NewGroupList.Name+RESET)
+	// print diff
+	z.diffGroupListPrint(gu.NewGroupList)
+
+	// warn about missing keys
+	err := z.warnGroupListMissingKeys(true, gu.NewGroupList)
+	if err != nil {
+		z.PrintfT(0, "could not warn about missing keys: %v", err)
+	}
+
+	// update grouplist
+	err = z.updateGroupList(p.From, gu.NewGroupList)
+	if err != nil {
+		z.PrintfT(0, "could not update group chat list: %v %v"+
+			z.settings.GcColor+gu.NewGroupList.Name+RESET,
 			err)
 	}
 
