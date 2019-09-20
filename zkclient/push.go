@@ -743,11 +743,11 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 	for i := range gi.Members {
 		id, err := z.ab.FindNick(gi.Members[i])
 		if err != nil {
-			z.Dbg(idApp, "handleGroupInvite: "+
+			z.Dbg(idZKC, "handleGroupInvite: "+
 				"FindNick: %v (?): %v", gi.Members[i], err)
 			err = z.find(gi.Members[i])
 			if err != nil {
-				z.Dbg(idApp, "handleGroupInvite: "+
+				z.Dbg(idZKC, "handleGroupInvite: "+
 					"find: %v (?): %v", gi.Members[i], err)
 			}
 		} else {

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -15,7 +16,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -30,15 +31,17 @@ import (
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkserver/account"
 	"github.com/companyzero/zkc/zkserver/settings"
+	"github.com/companyzero/zkc/zkserver/socketapi"
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
 	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (
-	idApp = 0
-	idRPC = 1
-	idS   = 2
+	idApp  = 0
+	idRPC  = 1
+	idS    = 2
+	idSock = 3
 
 	tagDepth = 32
 
@@ -46,11 +49,12 @@ const (
 	pendingFile    = "pending.ini"
 	rendezvousDir  = "rendezvous"
 	rendezvousFile = "rendezvous.ini"
+	socketFilename = ".socket"
 )
 
 var (
-	pendingPath    = path.Join(pendingDir, pendingFile)
-	rendezvousPath = path.Join(rendezvousDir, rendezvousFile)
+	pendingPath    = filepath.Join(pendingDir, pendingFile)
+	rendezvousPath = filepath.Join(rendezvousDir, rendezvousFile)
 )
 
 // RPCWrapper is a wrapped RPC Message for internal use.  This is required because RPC messages
@@ -77,6 +81,8 @@ type sessionContext struct {
 type ZKS struct {
 	sync.Mutex
 	sessions map[string]*sessionContext
+
+	socket net.Listener // socket for zkserverctl
 
 	// Not mutex entries
 	*debug.Debug
@@ -631,7 +637,7 @@ func (z *ZKS) preSession(conn net.Conn) {
 			rid := hex.EncodeToString(remoteID[:])
 
 			// validate user has an account
-			fi, err := os.Stat(path.Join(z.settings.Users, rid))
+			fi, err := os.Stat(filepath.Join(z.settings.Users, rid))
 			if err != nil || !fi.IsDir() {
 				z.Warn(idApp, "unknown identity: %v %v",
 					conn.RemoteAddr(),
@@ -669,10 +675,75 @@ func (z *ZKS) preSession(conn net.Conn) {
 	}
 }
 
+func (z *ZKS) socketHandler(c net.Conn) {
+	defer c.Close()
+	for {
+		jr := json.NewDecoder(c)
+		var sc socketapi.SocketCommandID
+		err := jr.Decode(&sc)
+		if err != nil {
+			// abort on any error
+			z.Dbg(idSock, "json.Decode: %v", err)
+			return
+		}
+
+		// Read SocketCommandID
+		if sc.Version != socketapi.SCVersion {
+			z.Error(idSock, "invalid socket protocol version: "+
+				"want %v got %v", socketapi.SCVersion,
+				sc.Version)
+			return
+		}
+		z.Dbg(idSock, "command: %v", sc)
+
+		switch sc.Command {
+		case socketapi.SCUserDisable:
+			jUserDisable := json.NewDecoder(c)
+			var jud socketapi.SocketCommandUserDisabler
+			err := jUserDisable.Decode(&jud)
+			if err != nil {
+				// abort on any error
+				z.Dbg(idSock, "SocketCommandUserDisabler: %v",
+					err)
+				return
+			}
+			z.Dbg(idSock, "user disable %v", spew.Sdump(jud))
+		default:
+			z.Dbg(idSock, "invalid command: %v", sc.Command)
+			return
+		}
+	}
+}
+
+func (z *ZKS) listenSocket() error {
+	var (
+		err      error
+		SockAddr = filepath.Join(z.settings.Root, socketFilename)
+	)
+	z.socket, err = net.Listen("unix", SockAddr)
+	if err != nil {
+		return err
+	}
+	z.Info(idSock, "UNIX socket listening on: %v", SockAddr)
+
+	go func() {
+		for {
+			conn, err := z.socket.Accept()
+			if err != nil {
+				z.Dbg(idSock, "accept: %v", err)
+				return
+			}
+			go z.socketHandler(conn)
+		}
+	}()
+
+	return nil
+}
+
 func (z *ZKS) listen() error {
-	cert, err := tls.LoadX509KeyPair(path.Join(z.settings.Root,
+	cert, err := tls.LoadX509KeyPair(filepath.Join(z.settings.Root,
 		tools.ZKSCertFilename),
-		path.Join(z.settings.Root, tools.ZKSKeyFilename))
+		filepath.Join(z.settings.Root, tools.ZKSKeyFilename))
 	if err != nil {
 		return fmt.Errorf("could not load certificates: %v", err)
 	}
@@ -737,13 +808,14 @@ func _main() error {
 	// register remaining subsystems
 	z.Register(idRPC, "[RPC]")
 	z.Register(idS, "[SES]")
+	z.Register(idSock, "[SOC]")
 
 	// print version
 	z.Info(idApp, "Version: %v, RPC Protocol: %v",
 		zkutil.Version(), rpc.ProtocolVersion)
 
 	// identity
-	id, err := ioutil.ReadFile(path.Join(z.settings.Root,
+	id, err := ioutil.ReadFile(filepath.Join(z.settings.Root,
 		tools.ZKSIdentityFilename))
 	if err != nil {
 		z.Info(idApp, "Creating a new identity")
@@ -755,7 +827,7 @@ func _main() error {
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(path.Join(z.settings.Root,
+		err = ioutil.WriteFile(filepath.Join(z.settings.Root,
 			tools.ZKSIdentityFilename), id, 0600)
 		if err != nil {
 			return err
@@ -767,9 +839,9 @@ func _main() error {
 	}
 
 	// certs
-	cert, err := tls.LoadX509KeyPair(path.Join(z.settings.Root,
+	cert, err := tls.LoadX509KeyPair(filepath.Join(z.settings.Root,
 		tools.ZKSCertFilename),
-		path.Join(z.settings.Root, tools.ZKSKeyFilename))
+		filepath.Join(z.settings.Root, tools.ZKSKeyFilename))
 	if err != nil {
 		// create a new cert
 		valid := time.Date(2049, 12, 31, 23, 59, 59, 0, time.UTC)
@@ -780,12 +852,12 @@ func _main() error {
 		}
 
 		// save on disk
-		err = ioutil.WriteFile(path.Join(z.settings.Root,
+		err = ioutil.WriteFile(filepath.Join(z.settings.Root,
 			tools.ZKSCertFilename), cp, 0600)
 		if err != nil {
 			return fmt.Errorf("could not save cert: %v", err)
 		}
-		err = ioutil.WriteFile(path.Join(z.settings.Root,
+		err = ioutil.WriteFile(filepath.Join(z.settings.Root,
 			tools.ZKSKeyFilename), kp, 0600)
 		if err != nil {
 			return fmt.Errorf("could not save key: %v", err)
@@ -826,6 +898,17 @@ func _main() error {
 		return err
 	}
 	z.Info(idApp, "Account subsystem bringup complete")
+
+	// Setup unix domain socket
+	err = os.RemoveAll(filepath.Join(z.settings.Root, socketFilename))
+	if err != nil {
+		return err
+	}
+	err = z.listenSocket()
+	if err != nil {
+		return err
+	}
+	defer z.socket.Close()
 
 	// listen for incoming connections
 	err = z.listen()
