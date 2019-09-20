@@ -516,6 +516,7 @@ func (z *ZKC) gcMessage(args []string, msg string, mode rpc.MessageMode) error {
 }
 
 func (z *ZKC) gcUpdate(args []string) error {
+	return fmt.Errorf("gc update disabled")
 	if len(args) != 3 {
 		return fmt.Errorf("usage: /gc update <group>")
 	}
