@@ -38,8 +38,9 @@ func ObtainSettings() (*settings.Settings, error) {
 	flag.Parse()
 
 	if *version {
-		fmt.Fprintf(os.Stderr, "zkserver %s (%s) protocol version %d\n",
-			zkutil.Version(), runtime.Version(), rpc.ProtocolVersion)
+		fmt.Fprintf(os.Stderr, "zkserverdump %s (%s) protocol version"+
+			"%d\n", zkutil.Version(), runtime.Version(),
+			rpc.ProtocolVersion)
 		os.Exit(0)
 	}
 
