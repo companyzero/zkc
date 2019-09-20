@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -72,7 +71,7 @@ func Fingerprint(blob []byte) string {
 	d := sha1.New()
 	d.Write(blob)
 	digest := d.Sum(nil)
-	return base64.StdEncoding.EncodeToString(digest)
+	return hex.EncodeToString(digest[:4])[:7]
 }
 
 func FingerprintDER(c tls.Certificate) string {

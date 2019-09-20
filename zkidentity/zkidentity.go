@@ -9,13 +9,12 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 
 	"github.com/companyzero/sntrup4591761"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -105,7 +104,7 @@ func New(name, nick string) (*FullIdentity, error) {
 }
 
 func Fingerprint(id [IdentitySize]byte) string {
-	return base64.StdEncoding.EncodeToString(id[:])
+	return hex.EncodeToString(id[:4])[:7]
 }
 
 func (fi *FullIdentity) RecalculateDigest() error {
