@@ -87,7 +87,7 @@ func userDisable(a []string) error {
 	}
 
 	if udr.Error != "" {
-		return fmt.Errorf("%v", udr.Error)
+		return fmt.Errorf("server reply: %v", udr.Error)
 	}
 
 	return nil
