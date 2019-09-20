@@ -1361,7 +1361,6 @@ func (z *ZKC) handleRPC() {
 			// handle callback
 			if f != nil {
 				z.Dbg(idZKC, "ack tag %v callback", message.Tag)
-				z.PrintfT(idZKC, "ack tag %v callback", message.Tag)
 				go f()
 			}
 
