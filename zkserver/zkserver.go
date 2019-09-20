@@ -49,7 +49,6 @@ const (
 	pendingFile    = "pending.ini"
 	rendezvousDir  = "rendezvous"
 	rendezvousFile = "rendezvous.ini"
-	socketFilename = ".socket"
 )
 
 var (
@@ -696,10 +695,11 @@ func (z *ZKS) socketHandler(c net.Conn) {
 		}
 		z.Dbg(idSock, "command: %v", sc)
 
+		// Read expected command
 		switch sc.Command {
 		case socketapi.SCUserDisable:
 			jUserDisable := json.NewDecoder(c)
-			var jud socketapi.SocketCommandUserDisabler
+			var jud socketapi.SocketCommandUserDisable
 			err := jUserDisable.Decode(&jud)
 			if err != nil {
 				// abort on any error
@@ -708,6 +708,12 @@ func (z *ZKS) socketHandler(c net.Conn) {
 				return
 			}
 			z.Dbg(idSock, "user disable %v", spew.Sdump(jud))
+
+			// write reply
+			je := json.NewEncoder(c)
+			err = je.Encode(socketapi.SocketCommandUserDisableReply{
+				Error: "not yet implemented",
+			})
 		default:
 			z.Dbg(idSock, "invalid command: %v", sc.Command)
 			return
@@ -718,7 +724,7 @@ func (z *ZKS) socketHandler(c net.Conn) {
 func (z *ZKS) listenSocket() error {
 	var (
 		err      error
-		SockAddr = filepath.Join(z.settings.Root, socketFilename)
+		SockAddr = filepath.Join(z.settings.Root, socketapi.SocketFilename)
 	)
 	z.socket, err = net.Listen("unix", SockAddr)
 	if err != nil {
@@ -900,7 +906,8 @@ func _main() error {
 	z.Info(idApp, "Account subsystem bringup complete")
 
 	// Setup unix domain socket
-	err = os.RemoveAll(filepath.Join(z.settings.Root, socketFilename))
+	err = os.RemoveAll(filepath.Join(z.settings.Root,
+		socketapi.SocketFilename))
 	if err != nil {
 		return err
 	}
@@ -908,7 +915,6 @@ func _main() error {
 	if err != nil {
 		return err
 	}
-	defer z.socket.Close()
 
 	// listen for incoming connections
 	err = z.listen()
