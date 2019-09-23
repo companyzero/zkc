@@ -232,6 +232,16 @@ func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
 	return nil, fmt.Errorf("user not found")
 }
 
+func (a *Account) Disabled(pid [zkidentity.IdentitySize]byte) bool {
+	_, err := os.Stat(a.accountDirDisabled(pid))
+	return err == nil
+}
+
+func (a *Account) Enabled(pid [zkidentity.IdentitySize]byte) bool {
+	_, err := os.Stat(a.accountDir(pid))
+	return err == nil
+}
+
 func (a *Account) Disable(pid [zkidentity.IdentitySize]byte) error {
 	a.Lock()
 	defer a.Unlock()

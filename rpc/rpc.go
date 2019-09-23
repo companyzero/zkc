@@ -47,7 +47,8 @@ const (
 	InitialCmdSession       = "session"
 
 	// session phase
-	SessionCmdWelcome = "welcome"
+	SessionCmdWelcome   = "welcome"
+	SessionCmdUnwelcome = "unwelcome"
 
 	// tagged server commands
 	TaggedCmdRendezvous          = "rendezvous"
@@ -104,6 +105,15 @@ type Empty struct{}
 const (
 	ProtocolVersion = 8
 )
+
+// Unwelcome is written immediately following a key exchange.  This command
+// purpose is to detect if the key exchange completed on the client side.  If
+// the key exchange failed the server will simply disconnect. If the user is
+// Unwelcome this message will contain the reason.
+type Unwelcome struct {
+	Version int    // protocol version
+	Reason  string // reason why unwelcome
+}
 
 // Welcome is written immediately following a key exchange.  This command
 // purpose is to detect if the key exchange completed on the client side.  If

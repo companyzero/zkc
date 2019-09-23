@@ -121,6 +121,36 @@ func (z *ZKS) writeMessage(kx *session.KX, msg *RPCWrapper) error {
 	return nil
 }
 
+func (z *ZKS) unwelcome(kx *session.KX, reason string) error {
+	// assemble command
+	message := rpc.Message{
+		Command: rpc.SessionCmdUnwelcome,
+	}
+	payload := rpc.Unwelcome{
+		Version: rpc.ProtocolVersion,
+		Reason:  reason,
+	}
+
+	// encode command
+	var bb bytes.Buffer
+	_, err := xdr.Marshal(&bb, message)
+	if err != nil {
+		return fmt.Errorf("could not marshal Unwelcome message")
+	}
+	_, err = xdr.Marshal(&bb, payload)
+	if err != nil {
+		return fmt.Errorf("could not marshal Unwelcome payload")
+	}
+
+	// write command over encrypted transport
+	err = kx.Write(bb.Bytes())
+	if err != nil {
+		return fmt.Errorf("could not write Unwelcome message: %v", err)
+	}
+
+	return nil
+}
+
 func (z *ZKS) welcome(kx *session.KX) error {
 	// obtain message of the day
 	motd, err := ioutil.ReadFile(z.settings.MOTD)
@@ -629,24 +659,30 @@ func (z *ZKS) preSession(conn net.Conn) {
 			remoteID, ok := kx.TheirIdentity().([32]byte)
 			if !ok {
 				z.Error(idApp, "invalid KX identity type %T: %v",
-					remoteID,
-					conn.RemoteAddr())
+					remoteID, conn.RemoteAddr())
 				return
 			}
-			rid := hex.EncodeToString(remoteID[:])
 
 			// validate user has an account
-			fi, err := os.Stat(filepath.Join(z.settings.Users, rid))
-			if err != nil || !fi.IsDir() {
-				z.Warn(idApp, "unknown identity: %v %v",
-					conn.RemoteAddr(),
-					rid)
+			if z.account.Disabled(remoteID) {
+				z.Warn(idApp, "disabled user identity: %v %x",
+					conn.RemoteAddr(), remoteID)
+				err = z.unwelcome(kx, "user disabled")
+				if err != nil {
+					z.Error(idApp, "unwelcome failed: %v %v",
+						conn.RemoteAddr(), err)
+				}
 				return
 			}
 
-			z.Info(idApp, "connection from %v identity %v",
-				conn.RemoteAddr(),
-				rid)
+			if !z.account.Enabled(remoteID) {
+				z.Warn(idApp, "unknown identity: %v %x",
+					conn.RemoteAddr(), remoteID)
+				return
+			}
+
+			z.Info(idApp, "connection from %v identity %x",
+				conn.RemoteAddr(), remoteID)
 
 			// send welcome
 			err = z.welcome(kx)

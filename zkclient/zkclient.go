@@ -768,7 +768,7 @@ func (z *ZKC) sessionPhase(conn net.Conn) (*session.KX, error) {
 
 // lock must be held
 func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
-	// obtain Welcome
+	// obtain Welcome/
 	var (
 		command rpc.Message
 		wmsg    rpc.Welcome
@@ -790,8 +790,20 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 		return nil, fmt.Errorf("unmarshal Welcome header failed")
 	}
 
-	if command.Command != rpc.SessionCmdWelcome {
-		return nil, fmt.Errorf("expected welcome command")
+	switch command.Command {
+	case rpc.SessionCmdUnwelcome:
+		// unmarshal payload
+		var umsg rpc.Unwelcome
+		_, err = xdr.Unmarshal(br, &umsg)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal Unwelcome payload " +
+				"failed")
+		}
+		return nil, fmt.Errorf("unwelcome reason %v",
+			umsg.Reason)
+	case rpc.SessionCmdWelcome:
+	default:
+		return nil, fmt.Errorf("expected (un)welcome command")
 	}
 
 	// unmarshal payload
