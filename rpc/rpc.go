@@ -68,6 +68,9 @@ const (
 	// misc
 	MessageModeNormal MessageMode = 0
 	MessageModeMe     MessageMode = 1
+
+	ErrorCodeInvalid      = 0 // invalid error code
+	ErrorCodeUserDisabled = 1 // user disabled
 )
 
 // CreateAccount is a PRPC that is used to create a new account on the server.
@@ -102,7 +105,8 @@ type Message struct {
 // Acknowledge is sent to acknowledge commands and Error is set if the command
 // failed.
 type Acknowledge struct {
-	Error string
+	Error     string
+	ErrorCode int // optional error to be used as a hint
 }
 
 const (

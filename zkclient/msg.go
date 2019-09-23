@@ -473,7 +473,10 @@ func (z *ZKC) cacheCRPC(id [zkidentity.IdentitySize]byte, payload interface{}, f
 	}
 
 	z.Lock()
-	z.tagCallback[tag] = f
+	z.tagCallback[tag] = &cb{
+		callback: f,
+		to:       *r.TheirIdentityPublic,
+	}
 	z.Unlock()
 
 	msg := &rpc.Message{

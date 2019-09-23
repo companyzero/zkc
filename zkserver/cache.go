@@ -33,9 +33,11 @@ func (z *ZKS) handleCache(writer chan *RPCWrapper, kx *session.KX, msg rpc.Messa
 	filename, err := z.account.Deliver(cache.To, from, cache.Payload, false)
 	if err != nil {
 		replyError := "internal error"
+		replyErrorCode := rpc.ErrorCodeInvalid
 		if z.account.Disabled(cache.To) {
 			replyError = fmt.Sprintf("identity disabled %x",
 				cache.To)
+			replyErrorCode = rpc.ErrorCodeUserDisabled
 		}
 		// ack with error
 		writer <- &RPCWrapper{
@@ -44,7 +46,8 @@ func (z *ZKS) handleCache(writer chan *RPCWrapper, kx *session.KX, msg rpc.Messa
 				Tag:     msg.Tag,
 			},
 			Payload: rpc.Acknowledge{
-				Error: replyError,
+				Error:     replyError,
+				ErrorCode: replyErrorCode,
 			},
 		}
 		z.Dbg(idApp, "delivery failed: %v", err)

@@ -591,6 +591,11 @@ func (z *ZKC) list(args []string) {
 	}
 }
 
+type cb struct {
+	callback func()
+	to       [zkidentity.IdentitySize]byte
+}
+
 type ZKC struct {
 	*debug.Debug
 	settings *Settings
@@ -625,11 +630,11 @@ type ZKC struct {
 	cert            []byte // remote cert for outer fingerprint
 	provisionalCert []byte // used when cert changed
 	tagStack        *tagstack.TagStack
-	tagCallback     []func() // what to do when tag is acknowledged
-	chunkSize       uint64   // max chunk size, provided by server
-	msgSize         uint     // max message size, provided by server
-	attachmentSize  uint64   // max attachment size, provided by server
-	directory       bool     // whether the server is in directory mode
+	tagCallback     []*cb  // what to do when tag is acknowledged
+	chunkSize       uint64 // max chunk size, provided by server
+	msgSize         uint   // max message size, provided by server
+	attachmentSize  uint64 // max attachment size, provided by server
+	directory       bool   // whether the server is in directory mode
 
 	// new rpc writer
 	done   chan struct{}    // shut it down
@@ -932,7 +937,7 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 
 	// at this point we are going to use tags
 	z.tagStack = tagstack.New(int(td))
-	z.tagCallback = make([]func(), int(td))
+	z.tagCallback = make([]*cb, int(td))
 	z.kx = kx
 	z.online = true
 	z.chunkSize = cs
@@ -1106,6 +1111,20 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) error {
 	}
 
 	return nil
+}
+
+// handleDisabledUser is called when a CRPC was cached but the server replied
+// with a ErrorCodeUserDisabled.
+func (z *ZKC) handleDisabledUser(id [zkidentity.IdentitySize]byte) {
+	rid, err := z.addressBookFind(id)
+	if err != nil {
+		z.PrintfT(-1, "User disabled: %v",
+			REDBOLD+hex.EncodeToString(id[:])+RESET)
+	} else {
+		z.PrintfT(-1, "User disabled: %v %v",
+			REDBOLD+rid.Nick+RESET,
+			rid.Fingerprint())
+	}
 }
 
 // handleRPC deals with all incoming RPC commands.  It shall be called as a go
@@ -1371,7 +1390,7 @@ func (z *ZKC) handleRPC() {
 				z.Unlock()
 				return
 			}
-			f := z.tagCallback[message.Tag]
+			c := z.tagCallback[message.Tag]
 			z.tagCallback[message.Tag] = nil
 			z.Unlock()
 
@@ -1383,15 +1402,24 @@ func (z *ZKC) handleRPC() {
 				return
 			}
 
+			// print error if we got one
 			if a.Error != "" {
-				z.PrintfT(-1, REDBOLD+"cache error: %v"+RESET,
+				z.PrintfT(0, REDBOLD+"cache error: %v"+RESET,
 					a.Error)
 			}
 
+			if c != nil && a.ErrorCode == rpc.ErrorCodeUserDisabled {
+				// Handle user disabled special because a
+				// callback to deal with it would have to be
+				// rigged all over the code. This may need to
+				// be reconsidred.
+				go z.handleDisabledUser(c.to)
+			}
+
 			// handle callback
-			if f != nil {
+			if c != nil && c.callback != nil {
 				z.Dbg(idZKC, "ack tag %v callback", message.Tag)
-				go f()
+				go c.callback()
 			}
 
 		case rpc.TaggedCmdIdentityFindReply:
