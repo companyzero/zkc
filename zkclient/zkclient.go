@@ -801,6 +801,10 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 			return nil, fmt.Errorf("unmarshal Unwelcome payload " +
 				"failed")
 		}
+
+		// Don't try to reconnect
+		z.offline = true
+
 		return nil, fmt.Errorf("%v", umsg.Reason)
 
 	default:
