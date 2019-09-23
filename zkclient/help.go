@@ -89,7 +89,7 @@ var (
 		},
 		{
 			command:     cmdInfo,
-			usage:       cmdInfo + "[nick]",
+			usage:       cmdInfo + "[nick|identity]",
 			description: "print user information",
 			long: []string{
 				"When used without a nick this commands prints your information instead of the provided user's information.  This can be used to display things such as real names and fingerprints.",

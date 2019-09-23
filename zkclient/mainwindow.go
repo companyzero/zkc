@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -579,19 +580,24 @@ func (mw *mainWindow) action(cmd string) error {
 			return nil
 		}
 		if len(args) == 2 {
-			pid, err := mw.zkc.ab.FindNick(args[1])
-			if err != nil {
-				if mw.zkc.id.Public.Nick == args[1] {
-					// handle self too
-					mw.zkc.printID(&mw.zkc.id.Public)
-					return nil
-				} else {
-					return fmt.Errorf("nick not found: %v",
-						args[1])
-				}
+			pid, err := mw.zkc.ab.FindIdentityS(args[1])
+			if err == nil {
+				mw.zkc.printID(pid)
+				return nil
 			}
-			mw.zkc.printID(pid)
-			return nil
+			mw.zkc.PrintfT(-1, "err %v", err)
+			pid, err = mw.zkc.ab.FindNick(args[1])
+			if err == nil {
+				mw.zkc.printID(pid)
+				return nil
+			}
+			if mw.zkc.id.Public.Nick == args[1] ||
+				hex.EncodeToString(mw.zkc.id.Public.Identity[:]) == args[1] {
+				// handle self too
+				mw.zkc.printID(&mw.zkc.id.Public)
+				return nil
+			}
+			return fmt.Errorf("nick not found: %v", args[1])
 		}
 
 		return mw.doUsage(args)

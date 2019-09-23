@@ -6,6 +6,7 @@ package addressbook
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"sync"
 
@@ -19,6 +20,7 @@ const (
 var (
 	ErrNotFound      = errors.New("nick not found")
 	ErrDuplicateNick = errors.New("duplicate nick")
+	ErrInvalidID     = errors.New("invalid identity")
 )
 
 // AddressBook context.
@@ -108,6 +110,20 @@ func (a *AddressBook) FindIdentity(id [zkidentity.IdentitySize]byte) (*zkidentit
 	}
 
 	return nil, ErrNotFound
+}
+
+// FindIdentityS looks up an identity as a string.
+func (a *AddressBook) FindIdentityS(sid string) (*zkidentity.PublicIdentity, error) {
+	x, err := hex.DecodeString(sid)
+	if err != nil {
+		return nil, ErrInvalidID
+	}
+	if len(x) != zkidentity.IdentitySize {
+		return nil, ErrInvalidID
+	}
+	var id [zkidentity.IdentitySize]byte
+	copy(id[:], x)
+	return a.FindIdentity(id)
 }
 
 // All returns an unsorted array of zkidentity.PublicIdentity.
