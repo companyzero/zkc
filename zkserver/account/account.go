@@ -233,6 +233,9 @@ func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
 }
 
 func (a *Account) Disable(pid [zkidentity.IdentitySize]byte) error {
+	a.Lock()
+	defer a.Unlock()
+
 	accountNameDisabled := a.accountDirDisabled(pid)
 	_, err := os.Stat(accountNameDisabled)
 	if err == nil {
@@ -247,10 +250,28 @@ func (a *Account) Disable(pid [zkidentity.IdentitySize]byte) error {
 			accountName)
 	}
 
+	return os.Rename(accountName, accountNameDisabled)
+}
+
+func (a *Account) Enable(pid [zkidentity.IdentitySize]byte) error {
 	a.Lock()
 	defer a.Unlock()
 
-	return os.Rename(accountName, accountNameDisabled)
+	accountNameDisabled := a.accountDirDisabled(pid)
+	_, err := os.Stat(accountNameDisabled)
+	if err != nil {
+		return fmt.Errorf("account not disable: %v",
+			accountNameDisabled)
+	}
+
+	accountName := a.accountDir(pid)
+	_, err = os.Stat(accountName)
+	if err == nil {
+		return fmt.Errorf("account already enabled: %v",
+			accountName)
+	}
+
+	return os.Rename(accountNameDisabled, accountName)
 }
 
 func (a *Account) Pull(id [zkidentity.IdentitySize]byte) error {

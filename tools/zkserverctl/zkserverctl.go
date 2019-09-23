@@ -90,6 +90,52 @@ func userDisable(a []string) error {
 		return fmt.Errorf("Server error: %v", udr.Error)
 	}
 
+	fmt.Printf("OK\n")
+
+	return nil
+}
+
+func userEnable(a []string) error {
+	if len(a) != 2 {
+		return fmt.Errorf("userenable <identity>")
+	}
+
+	c, err := net.Dial("unix", socket)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	// send identifier
+	je := json.NewEncoder(c)
+	err = je.Encode(socketapi.SocketCommandID{
+		Version: socketapi.SCVersion,
+		Command: socketapi.SCUserEnable,
+	})
+	if err != nil {
+		return err
+	}
+	err = je.Encode(socketapi.SocketCommandUserEnable{
+		Identity: strings.TrimSpace(a[1]), // XXX we need to check and make sure this is hex encoded and 32 bytes etc
+	})
+	if err != nil {
+		return err
+	}
+
+	// read reply
+	jd := json.NewDecoder(c)
+	var uer socketapi.SocketCommandUserEnableReply
+	err = jd.Decode(&uer)
+	if err != nil {
+		return err
+	}
+
+	if uer.Error != "" {
+		return fmt.Errorf("Server error: %v", uer.Error)
+	}
+
+	fmt.Printf("OK\n")
+
 	return nil
 }
 
@@ -113,6 +159,8 @@ func _main() error {
 	switch a[0] {
 	case "userdisable":
 		return userDisable(a)
+	case "userenable":
+		return userEnable(a)
 	default:
 		return fmt.Errorf("invalid command: %v", a[0])
 	}

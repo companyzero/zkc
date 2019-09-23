@@ -696,6 +696,9 @@ func (z *ZKS) socketHandler(c net.Conn) {
 
 		z.Dbg(idSock, "command: %v", sc)
 
+		je := json.NewEncoder(c) // prepare reply writer
+		var reply interface{}
+
 		// Read expected command
 		switch sc.Command {
 		case socketapi.SCUserDisable:
@@ -703,23 +706,39 @@ func (z *ZKS) socketHandler(c net.Conn) {
 			err := jr.Decode(&jud)
 			if err != nil {
 				// abort on any error
-				z.Dbg(idSock, "SocketCommandUserDisabler: %v",
+				z.Dbg(idSock, "SocketCommandUserDisable: %v",
 					err)
 				return
 			}
 			z.Dbg(idSock, "user disable %v", spew.Sdump(jud))
 
 			// write reply
-			udr := z.handleIdentityDisable(jud)
-			z.Dbg(idSock, "user disable reply:%v", spew.Sdump(udr))
-			je := json.NewEncoder(c)
-			err = je.Encode(udr)
+			reply = z.handleIdentityDisable(jud)
+
+		case socketapi.SCUserEnable:
+			var jue socketapi.SocketCommandUserEnable
+			err := jr.Decode(&jue)
 			if err != nil {
-				z.Error(idSock, "Encode: %v", err)
+				// abort on any error
+				z.Dbg(idSock, "SocketCommandUserEnable: %v",
+					err)
 				return
 			}
+			z.Dbg(idSock, "user enable %v", spew.Sdump(jue))
+
+			// write reply
+			reply = z.handleIdentityEnable(jue)
+
 		default:
 			z.Error(idSock, "invalid command: %v", sc.Command)
+			return
+		}
+
+		// write reply
+		z.Dbg(idSock, "reply:%v", spew.Sdump(reply))
+		err = je.Encode(reply)
+		if err != nil {
+			z.Error(idSock, "Encode: %v", err)
 			return
 		}
 	}

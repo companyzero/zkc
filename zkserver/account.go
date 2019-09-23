@@ -122,3 +122,26 @@ func (z *ZKS) handleIdentityDisable(ud socketapi.SocketCommandUserDisable) (udr 
 
 	return
 }
+
+// handleIdentityEnable always returns an answer to the enable command.
+func (z *ZKS) handleIdentityEnable(ue socketapi.SocketCommandUserEnable) (uer *socketapi.SocketCommandUserEnableReply) {
+	uer = &socketapi.SocketCommandUserEnableReply{}
+	id, err := hex.DecodeString(ue.Identity)
+	if err != nil {
+		uer.Error = err.Error()
+		return
+	}
+	if len(id) != zkidentity.IdentitySize {
+		uer.Error = err.Error()
+		return
+	}
+	var pid [zkidentity.IdentitySize]byte
+	copy(pid[:], id)
+	err = z.account.Enable(pid)
+	if err != nil {
+		uer.Error = err.Error()
+		return
+	}
+
+	return
+}
