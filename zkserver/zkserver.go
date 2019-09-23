@@ -752,6 +752,15 @@ func (z *ZKS) socketHandler(c net.Conn) {
 			// write reply
 			reply = z.handleIdentityDisable(jud)
 
+			// knock user offline
+			z.Lock()
+			if sc, ok := z.sessions[jud.Identity]; ok {
+				z.Dbg(idSock, "user disconnected %s",
+					jud.Identity)
+				sc.kx.Close()
+			}
+			z.Unlock()
+
 		case socketapi.SCUserEnable:
 			var jue socketapi.SocketCommandUserEnable
 			err := jr.Decode(&jue)
