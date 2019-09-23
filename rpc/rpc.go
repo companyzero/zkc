@@ -99,8 +99,11 @@ type Message struct {
 	//followed by Payload []byte
 }
 
-// Empty is used when there is no Payload.
-type Empty struct{}
+// Acknowledge is sent to acknowledge commands and Error is set if the command
+// failed.
+type Acknowledge struct {
+	Error string
+}
 
 const (
 	ProtocolVersion = 8

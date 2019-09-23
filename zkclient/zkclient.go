@@ -1348,9 +1348,17 @@ func (z *ZKC) handleRPC() {
 					Command: rpc.TaggedCmdAcknowledge,
 					Tag:     message.Tag,
 				},
-				rpc.Empty{})
+				rpc.Acknowledge{})
 
 		case rpc.TaggedCmdAcknowledge:
+			var a rpc.Acknowledge
+			_, err = xdr.Unmarshal(br, &a)
+			if err != nil {
+				exitError = fmt.Errorf("unmarshal " +
+					"Acknowledge")
+				return
+			}
+
 			z.Lock()
 			if message.Tag > uint32(len(z.tagCallback)) {
 				exitError = fmt.Errorf("Acknowledge "+
@@ -1368,6 +1376,11 @@ func (z *ZKC) handleRPC() {
 				exitError = fmt.Errorf("Push "+
 					"invalid tag: %v", message.Tag)
 				return
+			}
+
+			if a.Error != "" {
+				z.PrintfT(-1, REDBOLD+"cache error: %v"+RESET,
+					a.Error)
 			}
 
 			// handle callback
