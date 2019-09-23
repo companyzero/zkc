@@ -667,7 +667,8 @@ func (z *ZKS) preSession(conn net.Conn) {
 			if z.account.Disabled(remoteID) {
 				z.Warn(idApp, "disabled user identity: %v %x",
 					conn.RemoteAddr(), remoteID)
-				err = z.unwelcome(kx, "user disabled")
+				err = z.unwelcome(kx, "administrator has "+
+					"disabled your account")
 				if err != nil {
 					z.Error(idApp, "unwelcome failed: %v %v",
 						conn.RemoteAddr(), err)

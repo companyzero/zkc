@@ -34,7 +34,8 @@ func (z *ZKS) handleCache(writer chan *RPCWrapper, kx *session.KX, msg rpc.Messa
 	if err != nil {
 		replyError := "internal error"
 		if z.account.Disabled(cache.To) {
-			replyError = "identity disabled"
+			replyError = fmt.Sprintf("identity disabled %x",
+				cache.To)
 		}
 		// ack with error
 		writer <- &RPCWrapper{

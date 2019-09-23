@@ -791,6 +791,8 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 	}
 
 	switch command.Command {
+	case rpc.SessionCmdWelcome:
+		// fallthrough
 	case rpc.SessionCmdUnwelcome:
 		// unmarshal payload
 		var umsg rpc.Unwelcome
@@ -799,9 +801,8 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 			return nil, fmt.Errorf("unmarshal Unwelcome payload " +
 				"failed")
 		}
-		return nil, fmt.Errorf("unwelcome reason %v",
-			umsg.Reason)
-	case rpc.SessionCmdWelcome:
+		return nil, fmt.Errorf("%v", umsg.Reason)
+
 	default:
 		return nil, fmt.Errorf("expected (un)welcome command")
 	}
