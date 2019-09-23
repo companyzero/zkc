@@ -101,6 +101,11 @@ func New(root string) (*Account, error) {
 	return &a, nil
 }
 
+// AccountDirDisabled return the account directory for a given disabled identity.
+func (a *Account) accountDirDisabled(id [zkidentity.IdentitySize]byte) string {
+	return path.Join(a.root, "."+hex.EncodeToString(id[:]))
+}
+
 // AccountDir return the account directory for a given identity.
 func (a *Account) accountDir(id [zkidentity.IdentitySize]byte) string {
 	return path.Join(a.root, hex.EncodeToString(id[:]))
@@ -227,6 +232,27 @@ func (a *Account) Find(nick string) (*zkidentity.PublicIdentity, error) {
 	return nil, fmt.Errorf("user not found")
 }
 
+func (a *Account) Disable(pid [zkidentity.IdentitySize]byte) error {
+	accountNameDisabled := a.accountDirDisabled(pid)
+	_, err := os.Stat(accountNameDisabled)
+	if err == nil {
+		return fmt.Errorf("account already disabled: %v",
+			accountNameDisabled)
+	}
+
+	accountName := a.accountDir(pid)
+	_, err = os.Stat(accountName)
+	if err != nil {
+		return fmt.Errorf("account doesn't exist: %v",
+			accountName)
+	}
+
+	a.Lock()
+	defer a.Unlock()
+
+	return os.Rename(accountName, accountNameDisabled)
+}
+
 func (a *Account) Pull(id [zkidentity.IdentitySize]byte) error {
 	accountName := a.accountDir(id)
 	_, err := os.Stat(accountName)
@@ -279,7 +305,6 @@ func (a *Account) Deliver(to [zkidentity.IdentitySize]byte, from [zkidentity.Ide
 		return "", fmt.Errorf("duplicate filename %v", filename)
 	}
 
-	// lock write file so that we don't race read dir
 	a.Lock()
 	defer a.Unlock()
 

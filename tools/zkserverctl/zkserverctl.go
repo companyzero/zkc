@@ -53,7 +53,7 @@ func ObtainSettings() (*settings.Settings, error) {
 
 func userDisable(a []string) error {
 	if len(a) != 2 {
-		return fmt.Errorf("userdisable <nick|identity>")
+		return fmt.Errorf("userdisable <identity>")
 	}
 
 	c, err := net.Dial("unix", socket)
@@ -72,7 +72,7 @@ func userDisable(a []string) error {
 		return err
 	}
 	err = je.Encode(socketapi.SocketCommandUserDisable{
-		Identifier: strings.TrimSpace(a[1]),
+		Identity: strings.TrimSpace(a[1]), // XXX we need to check and make sure this is hex encoded and 32 bytes etc
 	})
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func userDisable(a []string) error {
 	}
 
 	if udr.Error != "" {
-		return fmt.Errorf("server reply: %v", udr.Error)
+		return fmt.Errorf("Server error: %v", udr.Error)
 	}
 
 	return nil

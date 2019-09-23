@@ -676,8 +676,8 @@ func (z *ZKS) preSession(conn net.Conn) {
 
 func (z *ZKS) socketHandler(c net.Conn) {
 	defer c.Close()
+	jr := json.NewDecoder(c)
 	for {
-		jr := json.NewDecoder(c)
 		var sc socketapi.SocketCommandID
 		err := jr.Decode(&sc)
 		if err != nil {
@@ -693,14 +693,14 @@ func (z *ZKS) socketHandler(c net.Conn) {
 				sc.Version)
 			return
 		}
+
 		z.Dbg(idSock, "command: %v", sc)
 
 		// Read expected command
 		switch sc.Command {
 		case socketapi.SCUserDisable:
-			jUserDisable := json.NewDecoder(c)
 			var jud socketapi.SocketCommandUserDisable
-			err := jUserDisable.Decode(&jud)
+			err := jr.Decode(&jud)
 			if err != nil {
 				// abort on any error
 				z.Dbg(idSock, "SocketCommandUserDisabler: %v",
@@ -710,12 +710,16 @@ func (z *ZKS) socketHandler(c net.Conn) {
 			z.Dbg(idSock, "user disable %v", spew.Sdump(jud))
 
 			// write reply
+			udr := z.handleIdentityDisable(jud)
+			z.Dbg(idSock, "user disable reply:%v", spew.Sdump(udr))
 			je := json.NewEncoder(c)
-			err = je.Encode(socketapi.SocketCommandUserDisableReply{
-				Error: "not yet implemented",
-			})
+			err = je.Encode(udr)
+			if err != nil {
+				z.Error(idSock, "Encode: %v", err)
+				return
+			}
 		default:
-			z.Dbg(idSock, "invalid command: %v", sc.Command)
+			z.Error(idSock, "invalid command: %v", sc.Command)
 			return
 		}
 	}

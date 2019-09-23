@@ -5,11 +5,14 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
 
 	"github.com/companyzero/zkc/rpc"
-	"github.com/davecgh/go-xdr/xdr2"
+	"github.com/companyzero/zkc/zkidentity"
+	"github.com/companyzero/zkc/zkserver/socketapi"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 // replyAccountFailure marshals and sends a CreateAccountReply with
@@ -95,4 +98,27 @@ func (z *ZKS) handleIdentityFind(writer chan *RPCWrapper, msg rpc.Message, nick 
 	reply.Payload = payload
 	writer <- &reply
 	return nil
+}
+
+// handleIdentityDisable always returns an answer to the disable command.
+func (z *ZKS) handleIdentityDisable(ud socketapi.SocketCommandUserDisable) (udr *socketapi.SocketCommandUserDisableReply) {
+	udr = &socketapi.SocketCommandUserDisableReply{}
+	id, err := hex.DecodeString(ud.Identity)
+	if err != nil {
+		udr.Error = err.Error()
+		return
+	}
+	if len(id) != zkidentity.IdentitySize {
+		udr.Error = err.Error()
+		return
+	}
+	var pid [zkidentity.IdentitySize]byte
+	copy(pid[:], id)
+	err = z.account.Disable(pid)
+	if err != nil {
+		udr.Error = err.Error()
+		return
+	}
+
+	return
 }

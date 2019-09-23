@@ -1,21 +1,25 @@
 package socketapi
 
 const (
-	SocketFilename = ".socket"
+	SocketFilename = ".socket" // socket filename
 
-	SCVersion     = 1
-	SCUserDisable = "userdisable"
+	SCVersion     = 1             // socket API version
+	SCUserDisable = "userdisable" // ID for SocketCommandUserDisable
 )
 
+// SocketCommandID identifies the command that follows.
 type SocketCommandID struct {
 	Version uint   `json:"version"`
 	Command string `json:"command"`
 }
 
+// SocketCommandUserDisable attempts to disable a user. We require a user
+// identity here in order to ensure uniqueness.
 type SocketCommandUserDisable struct {
-	Identifier string `json:"identifier"` // nick or identity
+	Identity string `json:"identity"` // public identity
 }
 
+// SocketCommandUserDisableReply returns "" if the command was successful.
 type SocketCommandUserDisableReply struct {
 	Error string `json:"error"`
 }
