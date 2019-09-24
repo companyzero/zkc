@@ -517,103 +517,103 @@ func (z *ZKC) gcMessage(args []string, msg string, mode rpc.MessageMode) error {
 
 func (z *ZKC) gcUpdate(args []string) error {
 	return fmt.Errorf("gc update disabled")
-	if len(args) != 3 {
-		return fmt.Errorf("usage: /gc update <group>")
-	}
+	//if len(args) != 3 {
+	//	return fmt.Errorf("usage: /gc update <group>")
+	//}
 
-	z.RLock()
-	defer z.RUnlock()
+	//z.RLock()
+	//defer z.RUnlock()
 
-	gc, found := z.groups[args[2]]
-	if !found {
-		return fmt.Errorf("group not found: %v", args[2])
-	}
+	//gc, found := z.groups[args[2]]
+	//if !found {
+	//	return fmt.Errorf("group not found: %v", args[2])
+	//}
 
-	if len(gc.Members) == 0 {
-		return fmt.Errorf("gcUpdate group %v has no administrator",
-			args[2])
-	}
+	//if len(gc.Members) == 0 {
+	//	return fmt.Errorf("gcUpdate group %v has no administrator",
+	//		args[2])
+	//}
 
-	// make sure we are the list administrator
-	if !bytes.Equal(gc.Members[0][:], z.id.Public.Identity[:]) {
-		return fmt.Errorf("only administrator can update group chat")
-	}
+	//// make sure we are the list administrator
+	//if !bytes.Equal(gc.Members[0][:], z.id.Public.Identity[:]) {
+	//	return fmt.Errorf("only administrator can update group chat")
+	//}
 
-	// new group membership list
-	ngc := rpc.GroupList{
-		Name:       gc.Name,
-		Generation: gc.Generation + 1,
-		Timestamp:  time.Now().Unix(),
-		Members:    gc.Members,
-	}
-	got := 0                    // acks seen
-	want := len(gc.Members) - 1 // acks required
-	f := func() {
-		z.Dbg(idZKC, "gcUpdate: callback %v %v", got, want)
-		z.Lock()
-		defer z.Unlock()
+	//// new group membership list
+	//ngc := rpc.GroupList{
+	//	Name:       gc.Name,
+	//	Generation: gc.Generation + 1,
+	//	Timestamp:  time.Now().Unix(),
+	//	Members:    gc.Members,
+	//}
+	//got := 0                    // acks seen
+	//want := len(gc.Members) - 1 // acks required
+	//f := func() {
+	//	z.Dbg(idZKC, "gcUpdate: callback %v %v", got, want)
+	//	z.Lock()
+	//	defer z.Unlock()
 
-		// only do stuff on last ack
-		got++
-		if got != want {
-			return
-		}
+	//	// only do stuff on last ack
+	//	got++
+	//	if got != want {
+	//		return
+	//	}
 
-		// find conversation
-		var (
-			k = -1
-			v *conversation
-		)
-		for k, v = range z.conversation {
-			if v.id.Nick == args[2] {
-				break
-			}
-		}
+	//	// find conversation
+	//	var (
+	//		k = -1
+	//		v *conversation
+	//	)
+	//	for k, v = range z.conversation {
+	//		if v.id.Nick == args[2] {
+	//			break
+	//		}
+	//	}
 
-		// make sure group has not vanished
-		_, found := z.groups[args[2]]
-		if !found {
-			z.PrintfT(0, REDBOLD+"group no longer exists: %v"+RESET,
-				args[2])
-			return
-		}
+	//	// make sure group has not vanished
+	//	_, found := z.groups[args[2]]
+	//	if !found {
+	//		z.PrintfT(0, REDBOLD+"group no longer exists: %v"+RESET,
+	//			args[2])
+	//		return
+	//	}
 
-		// set new group in memory
-		z.groups[args[2]] = ngc
+	//	// set new group in memory
+	//	z.groups[args[2]] = ngc
 
-		// save to disk
-		err := z._gcSaveDisk(args[2])
-		if err != nil {
-			em := fmt.Sprintf(REDBOLD+
-				"could not save group to disk %v: %v"+
-				RESET, args[2], err)
-			z.PrintfT(0, "%v", em)
-			// echo on conversation window
-			if k > 0 {
-				z.PrintfT(k, "%v", em)
-			}
-			return
-		}
+	//	// save to disk
+	//	err := z._gcSaveDisk(args[2])
+	//	if err != nil {
+	//		em := fmt.Sprintf(REDBOLD+
+	//			"could not save group to disk %v: %v"+
+	//			RESET, args[2], err)
+	//		z.PrintfT(0, "%v", em)
+	//		// echo on conversation window
+	//		if k > 0 {
+	//			z.PrintfT(k, "%v", em)
+	//		}
+	//		return
+	//	}
 
-		km := fmt.Sprintf("group chat updated: %v",
-			z.settings.PmColor+args[2]+RESET)
-		z.PrintfT(0, "%v", km)
-		// echo on conversation window
-		if k > 0 {
-			z.PrintfT(k, "%v", km)
-		}
-	}
+	//	km := fmt.Sprintf("group chat updated: %v",
+	//		z.settings.PmColor+args[2]+RESET)
+	//	z.PrintfT(0, "%v", km)
+	//	// echo on conversation window
+	//	if k > 0 {
+	//		z.PrintfT(k, "%v", km)
+	//	}
+	//}
 
-	// send new list to everyone
-	for j := 1; j < len(gc.Members); j++ {
-		z.Dbg(idZKC, "sending update %v to: %x", args[2], gc.Members[j])
-		z.scheduleCRPCCB(true, &gc.Members[j], rpc.GroupUpdate{
-			Reason:       "Forced admin update",
-			NewGroupList: ngc,
-		}, f)
-	}
+	//// send new list to everyone
+	//for j := 1; j < len(gc.Members); j++ {
+	//	z.Dbg(idZKC, "sending update %v to: %x", args[2], gc.Members[j])
+	//	z.scheduleCRPCCB(true, &gc.Members[j], rpc.GroupUpdate{
+	//		Reason:       "Forced admin update",
+	//		NewGroupList: ngc,
+	//	}, f)
+	//}
 
-	return nil
+	//return nil
 }
 
 func (z *ZKC) gc(action string, args []string) error {

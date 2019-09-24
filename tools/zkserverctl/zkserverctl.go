@@ -164,8 +164,6 @@ func _main() error {
 	default:
 		return fmt.Errorf("invalid command: %v", a[0])
 	}
-
-	return nil
 }
 
 func main() {
