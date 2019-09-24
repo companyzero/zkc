@@ -15,7 +15,7 @@ import (
 	"github.com/companyzero/zkc/inidb"
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/tools"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 //func (z *ZKS) pruneRendezvous(rz *inidb.INIDB) error {
@@ -27,7 +27,7 @@ import (
 //		}
 //		rzRecord := rpc.Rendezvous{} // deliberate instantiate
 //		br := bytes.NewReader(rzXDR)
-//		_, err = xdr.Unmarshal(br, &rzRecord)
+//		_, err = z.unmarshal(br, &rzRecord)
 //		if err != nil {
 //			return fmt.Errorf("could not unmarshal rendezvous "+
 //				"record: %v", k)
@@ -97,7 +97,7 @@ func (z *ZKS) handleRendezvousPull(writer chan *RPCWrapper,
 		goto bad
 	}
 	br = bytes.NewReader(rzXDR)
-	_, err = xdr.Unmarshal(br, &rzRecord)
+	_, err = z.unmarshal(br, &rzRecord)
 	if err != nil {
 		payload.Error = fmt.Sprintf("internal error unmarshal")
 		goto bad

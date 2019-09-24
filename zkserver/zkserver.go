@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -88,6 +89,11 @@ type ZKS struct {
 	account  *account.Account
 	settings *settings.Settings
 	id       *zkidentity.FullIdentity
+}
+
+// unmarshal performs a limited xdr Unmarshal operation.
+func (z *ZKS) unmarshal(r io.Reader, v interface{}) (int, error) {
+	return xdr.UnmarshalLimited(r, v, uint(z.settings.MaxMsgSize))
 }
 
 // writeMessage marshals and sends encrypted message to client.
@@ -434,7 +440,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		// unmarshal header
 		br := bytes.NewReader(cmd)
-		_, err = xdr.Unmarshal(br, &message)
+		_, err = z.unmarshal(br, &message)
 		if err != nil {
 			return fmt.Errorf("unmarshal header failed")
 		}
@@ -457,7 +463,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 		switch message.Command {
 		case rpc.TaggedCmdPing:
 			var p rpc.Ping
-			_, err = xdr.Unmarshal(br, &p)
+			_, err = z.unmarshal(br, &p)
 			if err != nil {
 				return fmt.Errorf("unmarshal Ping failed")
 			}
@@ -471,7 +477,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdRendezvous:
 			var r rpc.Rendezvous
-			_, err = xdr.Unmarshal(br, &r)
+			_, err = z.unmarshal(br, &r)
 			if err != nil {
 				return fmt.Errorf("unmarshal Rendezvous failed")
 			}
@@ -482,7 +488,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdRendezvousPull:
 			var r rpc.RendezvousPull
-			_, err = xdr.Unmarshal(br, &r)
+			_, err = z.unmarshal(br, &r)
 			if err != nil {
 				return fmt.Errorf("unmarshal RendezvousPull " +
 					"failed")
@@ -495,7 +501,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdCache:
 			var r rpc.Cache
-			_, err = xdr.Unmarshal(br, &r)
+			_, err = z.unmarshal(br, &r)
 			if err != nil {
 				return fmt.Errorf("unmarshal Cache failed")
 			}
@@ -553,7 +559,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdIdentityFind:
 			var i rpc.IdentityFind
-			_, err = xdr.Unmarshal(br, &i)
+			_, err = z.unmarshal(br, &i)
 			if err != nil {
 				return fmt.Errorf("unmarshal IdentityFind failed")
 			}
@@ -564,7 +570,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdProxy:
 			var p rpc.Proxy
-			_, err = xdr.Unmarshal(br, &p)
+			_, err = z.unmarshal(br, &p)
 			if err != nil {
 				return fmt.Errorf("unmarshal Proxy failed")
 			}
@@ -593,7 +599,7 @@ func (z *ZKS) preSession(conn net.Conn) {
 	// pre session state
 	var mode string
 	for {
-		_, err := xdr.Unmarshal(conn, &mode)
+		_, err := z.unmarshal(conn, &mode)
 		if err != nil {
 			z.Dbg(idApp, "could not unmarshal mode: %v",
 				conn.RemoteAddr())
@@ -622,7 +628,7 @@ func (z *ZKS) preSession(conn net.Conn) {
 		case rpc.InitialCmdCreateAccount:
 			z.T(idApp, "InitialCmdCreateAccount: %v", conn.RemoteAddr())
 			var ca rpc.CreateAccount
-			_, err := xdr.Unmarshal(conn, &ca)
+			_, err := z.unmarshal(conn, &ca)
 			if err != nil {
 				z.Error(idApp, "could not unmarshal "+
 					"CreateAccount: %v",
