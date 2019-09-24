@@ -104,7 +104,7 @@ func New(name, nick string) (*FullIdentity, error) {
 }
 
 func Fingerprint(id [IdentitySize]byte) string {
-	return hex.EncodeToString(id[:4])[:7]
+	return hex.EncodeToString(id[:])
 }
 
 func (fi *FullIdentity) RecalculateDigest() error {

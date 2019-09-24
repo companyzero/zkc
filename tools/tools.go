@@ -71,7 +71,7 @@ func Fingerprint(blob []byte) string {
 	d := sha1.New()
 	d.Write(blob)
 	digest := d.Sum(nil)
-	return hex.EncodeToString(digest[:4])[:7]
+	return hex.EncodeToString(digest[:])
 }
 
 func FingerprintDER(c tls.Certificate) string {
