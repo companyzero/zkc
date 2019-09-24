@@ -282,14 +282,15 @@ func (z *ZKC) focus(id int) {
 }
 
 type conversation struct {
-	console   *ttk.List // console list
-	id        *zkidentity.PublicIdentity
-	nick      string
-	dirty     bool
-	separator bool
-	group     bool      // when set it is a group chat
-	mentioned bool      // set when user nick is mentioned in group chat
-	lastMsg   time.Time // stamp of last received msg
+	console        *ttk.List // console list
+	id             *zkidentity.PublicIdentity
+	nick           string
+	dirty          bool
+	separator      bool
+	group          bool      // when set it is a group chat
+	mentioned      bool      // set when user nick is mentioned in group chat
+	lastMsg        time.Time // stamp of last received msg
+	seenCacheError int
 }
 
 func (z *ZKC) nextConversation() {
@@ -1120,10 +1121,63 @@ func (z *ZKC) handleDisabledUser(id [zkidentity.IdentitySize]byte) {
 	if err != nil {
 		z.PrintfT(-1, "User disabled: %v",
 			REDBOLD+hex.EncodeToString(id[:])+RESET)
-	} else {
-		z.PrintfT(-1, "User disabled: %v %v",
+		return
+	}
+
+	z.Lock()
+	defer z.Unlock()
+	//search for active nick
+	for k, v := range z.conversation {
+		if v == nil {
+			continue
+		}
+		if v.group {
+			// groupchat, see if nick exists here
+			g, ok := z.groups[v.nick]
+			if !ok {
+				// should be impossible
+				z.PrintfT(k, "User disabled: %v %v",
+					REDBOLD+rid.Nick+RESET,
+					rid.Fingerprint())
+				continue
+			}
+
+			// See if we are the admin of the gc
+			if bytes.Equal(z.id.Public.Identity[:], g.Members[0][:]) {
+				z.PrintfT(k, REDBOLD+"user %v disabled: "+
+					"please kick %v (%x) from gc"+RESET,
+					rid.Nick, rid.Nick, rid.Identity[:])
+				continue
+			}
+
+			// print only once for users
+			for _, vv := range g.Members {
+				if bytes.Equal(rid.Identity[:], vv[:]) {
+					if z.conversation[k].seenCacheError > 0 {
+						z.conversation[k].seenCacheError++
+						break
+					}
+					z.conversation[k].seenCacheError++
+					z.PrintfT(k, "User disabled: %v %v",
+						REDBOLD+rid.Nick+RESET,
+						rid.Fingerprint())
+					break
+				}
+			}
+			continue
+		}
+		if v.nick != rid.Nick {
+			continue
+		}
+		if z.conversation[k].seenCacheError > 0 {
+			z.conversation[k].seenCacheError++
+			continue
+		}
+		z.conversation[k].seenCacheError++
+		z.PrintfT(k, "User disabled: %v %v",
 			REDBOLD+rid.Nick+RESET,
 			rid.Fingerprint())
+		return
 	}
 }
 

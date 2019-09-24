@@ -110,7 +110,7 @@ type Acknowledge struct {
 }
 
 const (
-	ProtocolVersion = 8
+	ProtocolVersion = 9
 )
 
 // Unwelcome is written immediately following a key exchange.  This command
