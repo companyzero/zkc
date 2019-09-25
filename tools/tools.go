@@ -6,7 +6,7 @@ package tools
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/hex"
@@ -68,7 +68,7 @@ func ValidateIdentity(id string) ([]byte, error) {
 }
 
 func Fingerprint(blob []byte) string {
-	d := sha1.New()
+	d := sha256.New()
 	d.Write(blob)
 	digest := d.Sum(nil)
 	return hex.EncodeToString(digest[:])
