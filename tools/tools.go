@@ -6,9 +6,8 @@ package tools
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -69,10 +68,10 @@ func ValidateIdentity(id string) ([]byte, error) {
 }
 
 func Fingerprint(blob []byte) string {
-	d := sha1.New()
+	d := sha256.New()
 	d.Write(blob)
 	digest := d.Sum(nil)
-	return base64.StdEncoding.EncodeToString(digest)
+	return hex.EncodeToString(digest[:])
 }
 
 func FingerprintDER(c tls.Certificate) string {

@@ -22,7 +22,7 @@ import (
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 // ratchetError is a special error type that is used to determine if a ratchet
@@ -607,6 +607,22 @@ func (z *ZKC) handlePush(msg rpc.Message, p rpc.Push) error {
 
 		return z.handleGroupList(msg, p, gl)
 
+	case rpc.CRPCCmdGroupUpdate:
+		var gu rpc.GroupUpdate
+		_, err = xdr.Unmarshal(rd, &gu)
+		if err != nil {
+			return fmt.Errorf("unmarshal group chat update")
+		}
+		if z.settings.Debug {
+			z.Dbg(idZKC, "%T%v%v%v",
+				gu,
+				spew.Sdump(msg),
+				spew.Sdump(&p.From),
+				spew.Sdump(gu))
+		}
+
+		return z.handleGroupUpdate(msg, p, gu)
+
 	case rpc.CRPCCmdGroupMessage:
 		var gm rpc.GroupMessage
 		_, err = xdr.Unmarshal(rd, &gm)
@@ -727,11 +743,11 @@ func (z *ZKC) handleGroupInvite(msg rpc.Message, p rpc.Push,
 	for i := range gi.Members {
 		id, err := z.ab.FindNick(gi.Members[i])
 		if err != nil {
-			z.PrintfT(0, "handleGroupInvite: "+
+			z.Dbg(idZKC, "handleGroupInvite: "+
 				"FindNick: %v (?): %v", gi.Members[i], err)
 			err = z.find(gi.Members[i])
 			if err != nil {
-				z.PrintfT(0, "handleGroupInvite: "+
+				z.Dbg(idZKC, "handleGroupInvite: "+
 					"find: %v (?): %v", gi.Members[i], err)
 			}
 		} else {
@@ -1074,12 +1090,15 @@ func (z *ZKC) diffGroupListPrint(ng rpc.GroupList) {
 		return
 	}
 
+	z.query(ng.Name)
+
 	for _, v := range min {
 		if bytes.Equal(v[:], z.id.Public.Identity[:]) {
 			// self
 			z.PrintfT(0, "- %v %v (self)",
 				z.id.Public.Fingerprint(),
 				z.settings.PmColor+z.id.Public.Nick+RESET)
+			z.PrintfT(-1, "you left the channel")
 			continue
 		}
 		id, err := z.ab.FindIdentity(v)
@@ -1090,6 +1109,9 @@ func (z *ZKC) diffGroupListPrint(ng rpc.GroupList) {
 		z.PrintfT(0, "- %v %v",
 			id.Fingerprint(),
 			z.settings.PmColor+id.Nick+RESET)
+		z.PrintfT(-1, "%v %v has left the channel",
+			id.Fingerprint(),
+			z.settings.PmColor+id.Nick+RESET)
 	}
 
 	for _, v := range plus {
@@ -1098,6 +1120,7 @@ func (z *ZKC) diffGroupListPrint(ng rpc.GroupList) {
 			z.PrintfT(0, "+ %v %v (self)",
 				z.id.Public.Fingerprint(),
 				z.settings.PmColor+z.id.Public.Nick+RESET)
+			z.PrintfT(-1, "you joined the channel")
 			continue
 		}
 		id, err := z.ab.FindIdentity(v)
@@ -1106,6 +1129,9 @@ func (z *ZKC) diffGroupListPrint(ng rpc.GroupList) {
 			continue
 		}
 		z.PrintfT(0, "+ %v %v",
+			id.Fingerprint(),
+			z.settings.PmColor+id.Nick+RESET)
+		z.PrintfT(-1, "%v %v has joined the channel",
 			id.Fingerprint(),
 			z.settings.PmColor+id.Nick+RESET)
 	}
@@ -1163,22 +1189,59 @@ func (z *ZKC) handleGroupList(msg rpc.Message, p rpc.Push,
 	return nil
 }
 
+func (z *ZKC) handleGroupUpdate(msg rpc.Message, p rpc.Push,
+	gu rpc.GroupUpdate) error {
+
+	z.PrintfT(0, "Received group chat update (%v): %v",
+		gu.NewGroupList.Generation,
+		z.settings.GcColor+gu.NewGroupList.Name+RESET)
+	// print diff
+	z.diffGroupListPrint(gu.NewGroupList)
+
+	// warn about missing keys
+	err := z.warnGroupListMissingKeys(true, gu.NewGroupList)
+	if err != nil {
+		z.PrintfT(0, "could not warn about missing keys: %v", err)
+	}
+
+	// update grouplist
+	err = z.updateGroupList(p.From, gu.NewGroupList)
+	if err != nil {
+		z.PrintfT(0, "could not update group chat list: %v %v"+
+			z.settings.GcColor+gu.NewGroupList.Name+RESET,
+			err)
+	}
+
+	return nil
+}
+
 func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 	gm rpc.GroupMessage) error {
 
 	z.Lock()
-
-	// generation check here to see if message was sent with the correct
-	// generation of the groupchat list
 	gc, found := z.groups[gm.Name]
 	if !found {
 		z.Unlock()
 		return fmt.Errorf("handleGroupMessage: group chat not found: %v",
 			gm.Name)
 	}
-	if gc.Generation != gm.Generation {
+	// make sure sender is in group
+	var inGroup bool
+	for _, v := range gc.Members {
+		if bytes.Equal(v[:], p.From[:]) {
+			inGroup = true
+			break
+		}
+	}
+	if !inGroup {
 		z.Unlock()
-		return fmt.Errorf("invalid generation (%v != %v) group chat %v",
+		z.Dbg(idZKC, "not in group: %v %x", gm.Name, p.From[:])
+		return nil
+	}
+	// generation check here to see if message was sent with the correct
+	// generation of the groupchat list
+	if gc.Generation != gm.Generation {
+		z.Dbg(idZKC, "invalid generation (%v != %v) group chat %v",
 			gc.Generation, gm.Generation, gm.Name)
 	}
 	z.Unlock()

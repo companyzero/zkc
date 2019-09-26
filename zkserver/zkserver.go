@@ -8,14 +8,16 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -30,15 +32,17 @@ import (
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkserver/account"
 	"github.com/companyzero/zkc/zkserver/settings"
+	"github.com/companyzero/zkc/zkserver/socketapi"
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
 	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (
-	idApp = 0
-	idRPC = 1
-	idS   = 2
+	idApp  = 0
+	idRPC  = 1
+	idS    = 2
+	idSock = 3
 
 	tagDepth = 32
 
@@ -49,8 +53,8 @@ const (
 )
 
 var (
-	pendingPath    = path.Join(pendingDir, pendingFile)
-	rendezvousPath = path.Join(rendezvousDir, rendezvousFile)
+	pendingPath    = filepath.Join(pendingDir, pendingFile)
+	rendezvousPath = filepath.Join(rendezvousDir, rendezvousFile)
 )
 
 // RPCWrapper is a wrapped RPC Message for internal use.  This is required because RPC messages
@@ -78,11 +82,18 @@ type ZKS struct {
 	sync.Mutex
 	sessions map[string]*sessionContext
 
+	socket net.Listener // socket for zkserverctl
+
 	// Not mutex entries
 	*debug.Debug
 	account  *account.Account
 	settings *settings.Settings
 	id       *zkidentity.FullIdentity
+}
+
+// unmarshal performs a limited xdr Unmarshal operation.
+func (z *ZKS) unmarshal(r io.Reader, v interface{}) (int, error) {
+	return xdr.UnmarshalLimited(r, v, uint(z.settings.MaxMsgSize))
 }
 
 // writeMessage marshals and sends encrypted message to client.
@@ -113,6 +124,36 @@ func (z *ZKS) writeMessage(kx *session.KX, msg *RPCWrapper) error {
 			msg.Message.Command,
 			msg.Message.Tag)
 	}
+	return nil
+}
+
+func (z *ZKS) unwelcome(kx *session.KX, reason string) error {
+	// assemble command
+	message := rpc.Message{
+		Command: rpc.SessionCmdUnwelcome,
+	}
+	payload := rpc.Unwelcome{
+		Version: rpc.ProtocolVersion,
+		Reason:  reason,
+	}
+
+	// encode command
+	var bb bytes.Buffer
+	_, err := xdr.Marshal(&bb, message)
+	if err != nil {
+		return fmt.Errorf("could not marshal Unwelcome message")
+	}
+	_, err = xdr.Marshal(&bb, payload)
+	if err != nil {
+		return fmt.Errorf("could not marshal Unwelcome payload")
+	}
+
+	// write command over encrypted transport
+	err = kx.Write(bb.Bytes())
+	if err != nil {
+		return fmt.Errorf("could not write Unwelcome message: %v", err)
+	}
+
 	return nil
 }
 
@@ -399,7 +440,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		// unmarshal header
 		br := bytes.NewReader(cmd)
-		_, err = xdr.Unmarshal(br, &message)
+		_, err = z.unmarshal(br, &message)
 		if err != nil {
 			return fmt.Errorf("unmarshal header failed")
 		}
@@ -422,7 +463,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 		switch message.Command {
 		case rpc.TaggedCmdPing:
 			var p rpc.Ping
-			_, err = xdr.Unmarshal(br, &p)
+			_, err = z.unmarshal(br, &p)
 			if err != nil {
 				return fmt.Errorf("unmarshal Ping failed")
 			}
@@ -436,7 +477,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdRendezvous:
 			var r rpc.Rendezvous
-			_, err = xdr.Unmarshal(br, &r)
+			_, err = z.unmarshal(br, &r)
 			if err != nil {
 				return fmt.Errorf("unmarshal Rendezvous failed")
 			}
@@ -447,7 +488,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdRendezvousPull:
 			var r rpc.RendezvousPull
-			_, err = xdr.Unmarshal(br, &r)
+			_, err = z.unmarshal(br, &r)
 			if err != nil {
 				return fmt.Errorf("unmarshal RendezvousPull " +
 					"failed")
@@ -460,7 +501,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdCache:
 			var r rpc.Cache
-			_, err = xdr.Unmarshal(br, &r)
+			_, err = z.unmarshal(br, &r)
 			if err != nil {
 				return fmt.Errorf("unmarshal Cache failed")
 			}
@@ -518,7 +559,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdIdentityFind:
 			var i rpc.IdentityFind
-			_, err = xdr.Unmarshal(br, &i)
+			_, err = z.unmarshal(br, &i)
 			if err != nil {
 				return fmt.Errorf("unmarshal IdentityFind failed")
 			}
@@ -529,7 +570,7 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		case rpc.TaggedCmdProxy:
 			var p rpc.Proxy
-			_, err = xdr.Unmarshal(br, &p)
+			_, err = z.unmarshal(br, &p)
 			if err != nil {
 				return fmt.Errorf("unmarshal Proxy failed")
 			}
@@ -558,7 +599,7 @@ func (z *ZKS) preSession(conn net.Conn) {
 	// pre session state
 	var mode string
 	for {
-		_, err := xdr.Unmarshal(conn, &mode)
+		_, err := z.unmarshal(conn, &mode)
 		if err != nil {
 			z.Dbg(idApp, "could not unmarshal mode: %v",
 				conn.RemoteAddr())
@@ -587,7 +628,7 @@ func (z *ZKS) preSession(conn net.Conn) {
 		case rpc.InitialCmdCreateAccount:
 			z.T(idApp, "InitialCmdCreateAccount: %v", conn.RemoteAddr())
 			var ca rpc.CreateAccount
-			_, err := xdr.Unmarshal(conn, &ca)
+			_, err := z.unmarshal(conn, &ca)
 			if err != nil {
 				z.Error(idApp, "could not unmarshal "+
 					"CreateAccount: %v",
@@ -624,24 +665,31 @@ func (z *ZKS) preSession(conn net.Conn) {
 			remoteID, ok := kx.TheirIdentity().([32]byte)
 			if !ok {
 				z.Error(idApp, "invalid KX identity type %T: %v",
-					remoteID,
-					conn.RemoteAddr())
+					remoteID, conn.RemoteAddr())
 				return
 			}
-			rid := hex.EncodeToString(remoteID[:])
 
 			// validate user has an account
-			fi, err := os.Stat(path.Join(z.settings.Users, rid))
-			if err != nil || !fi.IsDir() {
-				z.Warn(idApp, "unknown identity: %v %v",
-					conn.RemoteAddr(),
-					rid)
+			if z.account.Disabled(remoteID) {
+				z.Warn(idApp, "disabled user identity: %v %x",
+					conn.RemoteAddr(), remoteID)
+				err = z.unwelcome(kx, "administrator has "+
+					"disabled your account")
+				if err != nil {
+					z.Error(idApp, "unwelcome failed: %v %v",
+						conn.RemoteAddr(), err)
+				}
 				return
 			}
 
-			z.Info(idApp, "connection from %v identity %v",
-				conn.RemoteAddr(),
-				rid)
+			if !z.account.Enabled(remoteID) {
+				z.Warn(idApp, "unknown identity: %v %x",
+					conn.RemoteAddr(), remoteID)
+				return
+			}
+
+			z.Info(idApp, "connection from %v identity %x",
+				conn.RemoteAddr(), remoteID)
 
 			// send welcome
 			err = z.welcome(kx)
@@ -669,10 +717,114 @@ func (z *ZKS) preSession(conn net.Conn) {
 	}
 }
 
+func (z *ZKS) socketHandler(c net.Conn) {
+	defer c.Close()
+	jr := json.NewDecoder(c)
+	for {
+		var sc socketapi.SocketCommandID
+		err := jr.Decode(&sc)
+		if err != nil {
+			// abort on any error
+			z.Dbg(idSock, "json.Decode: %v", err)
+			return
+		}
+
+		// Read SocketCommandID
+		if sc.Version != socketapi.SCVersion {
+			z.Error(idSock, "invalid socket protocol version: "+
+				"want %v got %v", socketapi.SCVersion,
+				sc.Version)
+			return
+		}
+
+		z.Dbg(idSock, "command: %v", sc)
+
+		je := json.NewEncoder(c) // prepare reply writer
+		var reply interface{}
+
+		// Read expected command
+		switch sc.Command {
+		case socketapi.SCUserDisable:
+			var jud socketapi.SocketCommandUserDisable
+			err := jr.Decode(&jud)
+			if err != nil {
+				// abort on any error
+				z.Dbg(idSock, "SocketCommandUserDisable: %v",
+					err)
+				return
+			}
+			z.Dbg(idSock, "user disable %v", spew.Sdump(jud))
+
+			// write reply
+			reply = z.handleIdentityDisable(jud)
+
+			// knock user offline
+			z.Lock()
+			if sc, ok := z.sessions[jud.Identity]; ok {
+				z.Dbg(idSock, "user disconnected %s",
+					jud.Identity)
+				sc.kx.Close()
+			}
+			z.Unlock()
+
+		case socketapi.SCUserEnable:
+			var jue socketapi.SocketCommandUserEnable
+			err := jr.Decode(&jue)
+			if err != nil {
+				// abort on any error
+				z.Dbg(idSock, "SocketCommandUserEnable: %v",
+					err)
+				return
+			}
+			z.Dbg(idSock, "user enable %v", spew.Sdump(jue))
+
+			// write reply
+			reply = z.handleIdentityEnable(jue)
+
+		default:
+			z.Error(idSock, "invalid command: %v", sc.Command)
+			return
+		}
+
+		// write reply
+		z.Dbg(idSock, "reply:%v", spew.Sdump(reply))
+		err = je.Encode(reply)
+		if err != nil {
+			z.Error(idSock, "Encode: %v", err)
+			return
+		}
+	}
+}
+
+func (z *ZKS) listenSocket() error {
+	var (
+		err      error
+		SockAddr = filepath.Join(z.settings.Root, socketapi.SocketFilename)
+	)
+	z.socket, err = net.Listen("unix", SockAddr)
+	if err != nil {
+		return err
+	}
+	z.Info(idSock, "UNIX socket listening on: %v", SockAddr)
+
+	go func() {
+		for {
+			conn, err := z.socket.Accept()
+			if err != nil {
+				z.Dbg(idSock, "accept: %v", err)
+				return
+			}
+			go z.socketHandler(conn)
+		}
+	}()
+
+	return nil
+}
+
 func (z *ZKS) listen() error {
-	cert, err := tls.LoadX509KeyPair(path.Join(z.settings.Root,
+	cert, err := tls.LoadX509KeyPair(filepath.Join(z.settings.Root,
 		tools.ZKSCertFilename),
-		path.Join(z.settings.Root, tools.ZKSKeyFilename))
+		filepath.Join(z.settings.Root, tools.ZKSKeyFilename))
 	if err != nil {
 		return fmt.Errorf("could not load certificates: %v", err)
 	}
@@ -737,13 +889,14 @@ func _main() error {
 	// register remaining subsystems
 	z.Register(idRPC, "[RPC]")
 	z.Register(idS, "[SES]")
+	z.Register(idSock, "[SOC]")
 
 	// print version
 	z.Info(idApp, "Version: %v, RPC Protocol: %v",
 		zkutil.Version(), rpc.ProtocolVersion)
 
 	// identity
-	id, err := ioutil.ReadFile(path.Join(z.settings.Root,
+	id, err := ioutil.ReadFile(filepath.Join(z.settings.Root,
 		tools.ZKSIdentityFilename))
 	if err != nil {
 		z.Info(idApp, "Creating a new identity")
@@ -755,7 +908,7 @@ func _main() error {
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(path.Join(z.settings.Root,
+		err = ioutil.WriteFile(filepath.Join(z.settings.Root,
 			tools.ZKSIdentityFilename), id, 0600)
 		if err != nil {
 			return err
@@ -767,9 +920,9 @@ func _main() error {
 	}
 
 	// certs
-	cert, err := tls.LoadX509KeyPair(path.Join(z.settings.Root,
+	cert, err := tls.LoadX509KeyPair(filepath.Join(z.settings.Root,
 		tools.ZKSCertFilename),
-		path.Join(z.settings.Root, tools.ZKSKeyFilename))
+		filepath.Join(z.settings.Root, tools.ZKSKeyFilename))
 	if err != nil {
 		// create a new cert
 		valid := time.Date(2049, 12, 31, 23, 59, 59, 0, time.UTC)
@@ -780,12 +933,12 @@ func _main() error {
 		}
 
 		// save on disk
-		err = ioutil.WriteFile(path.Join(z.settings.Root,
+		err = ioutil.WriteFile(filepath.Join(z.settings.Root,
 			tools.ZKSCertFilename), cp, 0600)
 		if err != nil {
 			return fmt.Errorf("could not save cert: %v", err)
 		}
-		err = ioutil.WriteFile(path.Join(z.settings.Root,
+		err = ioutil.WriteFile(filepath.Join(z.settings.Root,
 			tools.ZKSKeyFilename), kp, 0600)
 		if err != nil {
 			return fmt.Errorf("could not save key: %v", err)
@@ -826,6 +979,17 @@ func _main() error {
 		return err
 	}
 	z.Info(idApp, "Account subsystem bringup complete")
+
+	// Setup unix domain socket
+	err = os.RemoveAll(filepath.Join(z.settings.Root,
+		socketapi.SocketFilename))
+	if err != nil {
+		return err
+	}
+	err = z.listenSocket()
+	if err != nil {
+		return err
+	}
 
 	// listen for incoming connections
 	err = z.listen()

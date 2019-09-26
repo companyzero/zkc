@@ -74,7 +74,7 @@ var (
 		},
 		{
 			command:     cmdGc,
-			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <me> | <message> | <part>",
+			usage:       cmdGc + " <invite> | <join> | <kick> | <kill> | <new> | <me> | <message> | <part> | <update>",
 			description: "group chat command",
 			long: []string{
 				"invite invites a user to a group chat.  Usage " + cmdGc + " invite <groupchat> <nick>",
@@ -84,11 +84,12 @@ var (
 				"new creates a group chat of which you are the administrator.  Usage " + cmdGc + " new <groupchat>",
 				"m send a message to a group chat.  Usage " + cmdGc + " m <groupchat> <message>",
 				"part leaves a group chat.  Usage " + cmdGc + " part <groupchat>.",
+				"update forces groupchat update.  Usage " + cmdGc + " update <groupchat>.",
 			},
 		},
 		{
 			command:     cmdInfo,
-			usage:       cmdInfo + "[nick]",
+			usage:       cmdInfo + "[nick|identity]",
 			description: "print user information",
 			long: []string{
 				"When used without a nick this commands prints your information instead of the provided user's information.  This can be used to display things such as real names and fingerprints.",

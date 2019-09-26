@@ -47,7 +47,8 @@ const (
 	InitialCmdSession       = "session"
 
 	// session phase
-	SessionCmdWelcome = "welcome"
+	SessionCmdWelcome   = "welcome"
+	SessionCmdUnwelcome = "unwelcome"
 
 	// tagged server commands
 	TaggedCmdRendezvous          = "rendezvous"
@@ -67,6 +68,9 @@ const (
 	// misc
 	MessageModeNormal MessageMode = 0
 	MessageModeMe     MessageMode = 1
+
+	ErrorCodeInvalid      = 0 // invalid error code
+	ErrorCodeUserDisabled = 1 // user disabled
 )
 
 // CreateAccount is a PRPC that is used to create a new account on the server.
@@ -98,12 +102,25 @@ type Message struct {
 	//followed by Payload []byte
 }
 
-// Empty is used when there is no Payload.
-type Empty struct{}
+// Acknowledge is sent to acknowledge commands and Error is set if the command
+// failed.
+type Acknowledge struct {
+	Error     string
+	ErrorCode int // optional error to be used as a hint
+}
 
 const (
-	ProtocolVersion = 7
+	ProtocolVersion = 9
 )
+
+// Unwelcome is written immediately following a key exchange.  This command
+// purpose is to detect if the key exchange completed on the client side.  If
+// the key exchange failed the server will simply disconnect. If the user is
+// Unwelcome this message will contain the reason.
+type Unwelcome struct {
+	Version int    // protocol version
+	Reason  string // reason why unwelcome
+}
 
 // Welcome is written immediately following a key exchange.  This command
 // purpose is to detect if the key exchange completed on the client side.  If
@@ -337,8 +354,8 @@ const (
 	CRPCCmdGroupPart      = "grouppart"
 	CRPCCmdGroupKill      = "groupkill"
 	CRPCCmdGroupKick      = "groupkick"
+	CRPCCmdGroupUpdate    = "groupupdate"
 	CRPCCmdGroupList      = "grouplist"
-	CRPCCmdGroupListGet   = "grouplistget" // no struct used
 	CRPCCmdGroupMessage   = "groupmessage"
 	CRPCCmdChunkNew       = "chunknew"
 	CRPCCmdChunk          = "chunk"
@@ -409,6 +426,13 @@ type GroupKick struct {
 	Reason       string                        // why member was kicked
 	Parted       bool                          // kicked/parted
 	NewGroupList GroupList                     // new GroupList
+}
+
+// GroupUpdate is a forced update from the admin. Thi can be used in case of
+// gc' generation getting out of sync.
+type GroupUpdate struct {
+	Reason       string    // why member was kicked
+	NewGroupList GroupList // new GroupList
 }
 
 // GroupList, currently we detect spoofing by ensuring the origin of the

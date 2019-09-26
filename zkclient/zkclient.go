@@ -37,7 +37,7 @@ import (
 	"github.com/companyzero/zkc/zkclient/addressbook"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
@@ -282,14 +282,15 @@ func (z *ZKC) focus(id int) {
 }
 
 type conversation struct {
-	console   *ttk.List // console list
-	id        *zkidentity.PublicIdentity
-	nick      string
-	dirty     bool
-	separator bool
-	group     bool      // when set it is a group chat
-	mentioned bool      // set when user nick is mentioned in group chat
-	lastMsg   time.Time // stamp of last received msg
+	console        *ttk.List // console list
+	id             *zkidentity.PublicIdentity
+	nick           string
+	dirty          bool
+	separator      bool
+	group          bool      // when set it is a group chat
+	mentioned      bool      // set when user nick is mentioned in group chat
+	lastMsg        time.Time // stamp of last received msg
+	seenCacheError int
 }
 
 func (z *ZKC) nextConversation() {
@@ -341,13 +342,13 @@ func (z *ZKC) prevConversation() {
 func (z *ZKC) groupConversation(group string) (*conversation, int, error) {
 
 	// make sure group exists first
-	z.Lock()
+	z.RLock()
 	_, found := z.groups[group]
 	if !found {
-		z.Unlock()
+		z.RUnlock()
 		return nil, -1, fmt.Errorf("group not found %v", group)
 	}
-	z.Unlock()
+	z.RUnlock()
 
 	c := &conversation{}
 	fi := new(zkidentity.FullIdentity)
@@ -591,6 +592,11 @@ func (z *ZKC) list(args []string) {
 	}
 }
 
+type cb struct {
+	callback func()
+	to       [zkidentity.IdentitySize]byte
+}
+
 type ZKC struct {
 	*debug.Debug
 	settings *Settings
@@ -625,11 +631,11 @@ type ZKC struct {
 	cert            []byte // remote cert for outer fingerprint
 	provisionalCert []byte // used when cert changed
 	tagStack        *tagstack.TagStack
-	tagCallback     []func() // what to do when tag is acknowledged
-	chunkSize       uint64   // max chunk size, provided by server
-	msgSize         uint     // max message size, provided by server
-	attachmentSize  uint64   // max attachment size, provided by server
-	directory       bool     // whether the server is in directory mode
+	tagCallback     []*cb  // what to do when tag is acknowledged
+	chunkSize       uint64 // max chunk size, provided by server
+	msgSize         uint   // max message size, provided by server
+	attachmentSize  uint64 // max attachment size, provided by server
+	directory       bool   // whether the server is in directory mode
 
 	// new rpc writer
 	done   chan struct{}    // shut it down
@@ -768,7 +774,7 @@ func (z *ZKC) sessionPhase(conn net.Conn) (*session.KX, error) {
 
 // lock must be held
 func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
-	// obtain Welcome
+	// obtain Welcome/
 	var (
 		command rpc.Message
 		wmsg    rpc.Welcome
@@ -790,8 +796,25 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 		return nil, fmt.Errorf("unmarshal Welcome header failed")
 	}
 
-	if command.Command != rpc.SessionCmdWelcome {
-		return nil, fmt.Errorf("expected welcome command")
+	switch command.Command {
+	case rpc.SessionCmdWelcome:
+		// fallthrough
+	case rpc.SessionCmdUnwelcome:
+		// unmarshal payload
+		var umsg rpc.Unwelcome
+		_, err = xdr.Unmarshal(br, &umsg)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal Unwelcome payload " +
+				"failed")
+		}
+
+		// Don't try to reconnect
+		z.offline = true
+
+		return nil, fmt.Errorf("%v", umsg.Reason)
+
+	default:
+		return nil, fmt.Errorf("expected (un)welcome command")
 	}
 
 	// unmarshal payload
@@ -915,7 +938,7 @@ func (z *ZKC) welcomePhase(kx *session.KX) (*rpc.Welcome, error) {
 
 	// at this point we are going to use tags
 	z.tagStack = tagstack.New(int(td))
-	z.tagCallback = make([]func(), int(td))
+	z.tagCallback = make([]*cb, int(td))
 	z.kx = kx
 	z.online = true
 	z.chunkSize = cs
@@ -1089,6 +1112,73 @@ func (z *ZKC) step1IDKX(id zkidentity.PublicIdentity) error {
 	}
 
 	return nil
+}
+
+// handleDisabledUser is called when a CRPC was cached but the server replied
+// with a ErrorCodeUserDisabled.
+func (z *ZKC) handleDisabledUser(id [zkidentity.IdentitySize]byte) {
+	rid, err := z.addressBookFind(id)
+	if err != nil {
+		z.PrintfT(-1, "User disabled: %v",
+			REDBOLD+hex.EncodeToString(id[:])+RESET)
+		return
+	}
+
+	z.Lock()
+	defer z.Unlock()
+	//search for active nick
+	for k, v := range z.conversation {
+		if v == nil {
+			continue
+		}
+		if v.group {
+			// groupchat, see if nick exists here
+			g, ok := z.groups[v.nick]
+			if !ok {
+				// should be impossible
+				z.PrintfT(k, "User disabled: %v %v",
+					REDBOLD+rid.Nick+RESET,
+					rid.Fingerprint())
+				continue
+			}
+
+			// See if we are the admin of the gc
+			if bytes.Equal(z.id.Public.Identity[:], g.Members[0][:]) {
+				z.PrintfT(k, REDBOLD+"user %v disabled: "+
+					"please kick %v (%x) from gc"+RESET,
+					rid.Nick, rid.Nick, rid.Identity[:])
+				continue
+			}
+
+			// print only once for users
+			for _, vv := range g.Members {
+				if bytes.Equal(rid.Identity[:], vv[:]) {
+					if z.conversation[k].seenCacheError > 0 {
+						z.conversation[k].seenCacheError++
+						break
+					}
+					z.conversation[k].seenCacheError++
+					z.PrintfT(k, "User disabled: %v %v",
+						REDBOLD+rid.Nick+RESET,
+						rid.Fingerprint())
+					break
+				}
+			}
+			continue
+		}
+		if v.nick != rid.Nick {
+			continue
+		}
+		if z.conversation[k].seenCacheError > 0 {
+			z.conversation[k].seenCacheError++
+			continue
+		}
+		z.conversation[k].seenCacheError++
+		z.PrintfT(k, "User disabled: %v %v",
+			REDBOLD+rid.Nick+RESET,
+			rid.Fingerprint())
+		return
+	}
 }
 
 // handleRPC deals with all incoming RPC commands.  It shall be called as a go
@@ -1336,9 +1426,17 @@ func (z *ZKC) handleRPC() {
 					Command: rpc.TaggedCmdAcknowledge,
 					Tag:     message.Tag,
 				},
-				rpc.Empty{})
+				rpc.Acknowledge{})
 
 		case rpc.TaggedCmdAcknowledge:
+			var a rpc.Acknowledge
+			_, err = xdr.Unmarshal(br, &a)
+			if err != nil {
+				exitError = fmt.Errorf("unmarshal " +
+					"Acknowledge")
+				return
+			}
+
 			z.Lock()
 			if message.Tag > uint32(len(z.tagCallback)) {
 				exitError = fmt.Errorf("Acknowledge "+
@@ -1346,7 +1444,7 @@ func (z *ZKC) handleRPC() {
 				z.Unlock()
 				return
 			}
-			f := z.tagCallback[message.Tag]
+			c := z.tagCallback[message.Tag]
 			z.tagCallback[message.Tag] = nil
 			z.Unlock()
 
@@ -1358,11 +1456,24 @@ func (z *ZKC) handleRPC() {
 				return
 			}
 
+			// print error if we got one
+			if a.Error != "" {
+				z.PrintfT(0, REDBOLD+"cache error: %v"+RESET,
+					a.Error)
+			}
+
+			if c != nil && a.ErrorCode == rpc.ErrorCodeUserDisabled {
+				// Handle user disabled special because a
+				// callback to deal with it would have to be
+				// rigged all over the code. This may need to
+				// be reconsidred.
+				go z.handleDisabledUser(c.to)
+			}
+
 			// handle callback
-			if f != nil {
+			if c != nil && c.callback != nil {
 				z.Dbg(idZKC, "ack tag %v callback", message.Tag)
-				z.PrintfT(idZKC, "ack tag %v callback", message.Tag)
-				go f()
+				go c.callback()
 			}
 
 		case rpc.TaggedCmdIdentityFindReply:
@@ -1791,14 +1902,11 @@ func (z *ZKC) _updateGroupList(id [zkidentity.IdentitySize]byte,
 		return errNotAdmin
 	}
 
-	// make sure generation is moving forward
+	// Warn if generation is no moving forward
 	if gl.Generation <= group.Generation {
 		z.Warn(idRPC, "received illegal grouplist generation: %v %v %v",
 			gl.Name,
 			group.Generation,
-			gl.Generation)
-
-		return fmt.Errorf("invalid generation: %v <= group.Generation",
 			gl.Generation)
 	}
 

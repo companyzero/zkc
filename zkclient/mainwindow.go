@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -21,7 +22,7 @@ import (
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/companyzero/zkc/zkutil"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
@@ -40,7 +41,8 @@ var (
 	statusBG = ttk.ColorBlue  // default status background
 
 	RESET, REDBOLD, CYANBOLD, GREENBOLD, WHITEBOLD string // colors
-	MAGENTABOLD, YELLOWBOLD                        string
+	MAGENTABOLD                                    string
+	// YELLOWBOLD string
 
 	STATUSWHITEBOLD, STATUSCYAN, STATUSRESET string // status colors
 	STATUSMAGENTABOLD                        string
@@ -53,7 +55,7 @@ func init() {
 	GREENBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorGreen, ttk.AttrNA)
 	WHITEBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorWhite, ttk.AttrNA)
 	MAGENTABOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorMagenta, ttk.AttrNA)
-	YELLOWBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorYellow, ttk.AttrNA)
+	//YELLOWBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorYellow, ttk.AttrNA)
 
 	STATUSWHITEBOLD, _ = ttk.Color(ttk.AttrBold, ttk.ColorWhite, statusBG)
 	STATUSCYAN, _ = ttk.Color(ttk.AttrNA, ttk.ColorCyan, statusBG)
@@ -578,19 +580,24 @@ func (mw *mainWindow) action(cmd string) error {
 			return nil
 		}
 		if len(args) == 2 {
-			pid, err := mw.zkc.ab.FindNick(args[1])
-			if err != nil {
-				if mw.zkc.id.Public.Nick == args[1] {
-					// handle self too
-					mw.zkc.printID(&mw.zkc.id.Public)
-					return nil
-				} else {
-					return fmt.Errorf("nick not found: %v",
-						args[1])
-				}
+			pid, err := mw.zkc.ab.FindIdentityS(args[1])
+			if err == nil {
+				mw.zkc.printID(pid)
+				return nil
 			}
-			mw.zkc.printID(pid)
-			return nil
+			mw.zkc.PrintfT(-1, "err %v", err)
+			pid, err = mw.zkc.ab.FindNick(args[1])
+			if err == nil {
+				mw.zkc.printID(pid)
+				return nil
+			}
+			if mw.zkc.id.Public.Nick == args[1] ||
+				hex.EncodeToString(mw.zkc.id.Public.Identity[:]) == args[1] {
+				// handle self too
+				mw.zkc.printID(&mw.zkc.id.Public)
+				return nil
+			}
+			return fmt.Errorf("nick not found: %v", args[1])
 		}
 
 		return mw.doUsage(args)
