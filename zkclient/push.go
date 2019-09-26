@@ -1233,7 +1233,7 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 			break
 		}
 	}
-	if inGroup == false {
+	if !inGroup {
 		z.Unlock()
 		z.Dbg(idZKC, "not in group: %v %x", gm.Name, p.From[:])
 		return nil
