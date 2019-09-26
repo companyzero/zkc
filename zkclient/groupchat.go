@@ -45,8 +45,8 @@ func validName(name string) error {
 }
 
 func (z *ZKC) gcSaveDisk(name string) error {
-	z.RLock()
-	defer z.RUnlock()
+	z.Lock()
+	defer z.Unlock()
 
 	return z._gcSaveDisk(name)
 }
@@ -375,7 +375,31 @@ func (z *ZKC) gcKick(args []string) error {
 	return nil
 }
 
+func (z *ZKC) gcPartForce(args []string) error {
+	if len(args) != 4 || args[3] != "force" {
+		return fmt.Errorf("usage: /gc part <group> force")
+	}
+
+	z.Lock()
+	defer z.Unlock()
+
+	// remove from memory and disk
+	err := z._deleteGroup(args[2])
+	if err != nil {
+		return fmt.Errorf("could not delete group chat %v: %v",
+			args[2], err)
+	}
+
+	return nil
+}
+
 func (z *ZKC) gcPart(args []string) error {
+	// r args can mean force
+	if len(args) == 4 {
+		return z.gcPartForce(args)
+	}
+
+	// normal operation
 	if len(args) != 3 {
 		return fmt.Errorf("usage: /gc part <group>")
 	}

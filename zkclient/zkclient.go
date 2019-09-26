@@ -342,13 +342,13 @@ func (z *ZKC) prevConversation() {
 func (z *ZKC) groupConversation(group string) (*conversation, int, error) {
 
 	// make sure group exists first
-	z.Lock()
+	z.RLock()
 	_, found := z.groups[group]
 	if !found {
-		z.Unlock()
+		z.RUnlock()
 		return nil, -1, fmt.Errorf("group not found %v", group)
 	}
-	z.Unlock()
+	z.RUnlock()
 
 	c := &conversation{}
 	fi := new(zkidentity.FullIdentity)

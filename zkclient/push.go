@@ -1219,17 +1219,29 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 	gm rpc.GroupMessage) error {
 
 	z.Lock()
-
-	// generation check here to see if message was sent with the correct
-	// generation of the groupchat list
 	gc, found := z.groups[gm.Name]
 	if !found {
 		z.Unlock()
 		return fmt.Errorf("handleGroupMessage: group chat not found: %v",
 			gm.Name)
 	}
+	// make sure sender is in group
+	var inGroup bool
+	for _, v := range gc.Members {
+		if bytes.Equal(v[:], p.From[:]) {
+			inGroup = true
+			break
+		}
+	}
+	if inGroup == false {
+		z.Unlock()
+		z.Dbg(idZKC, "not in group: %v %x", gm.Name, p.From[:])
+		return nil
+	}
+	// generation check here to see if message was sent with the correct
+	// generation of the groupchat list
 	if gc.Generation != gm.Generation {
-		z.PrintfT(0, "invalid generation (%v != %v) group chat %v",
+		z.Dbg(idZKC, "invalid generation (%v != %v) group chat %v",
 			gc.Generation, gm.Generation, gm.Name)
 	}
 	z.Unlock()
