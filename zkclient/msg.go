@@ -205,7 +205,6 @@ func (z *ZKC) queueDepth() (*queueDepth, error) {
 }
 
 func (z *ZKC) scheduleCRPCCB(hi bool, id *[zkidentity.IdentitySize]byte, payload interface{}, f func()) {
-
 	m := wireMsg{
 		id:       id,
 		payload:  payload,
@@ -222,7 +221,6 @@ func (z *ZKC) scheduleCRPCCB(hi bool, id *[zkidentity.IdentitySize]byte, payload
 }
 
 func (z *ZKC) scheduleCRPC(hi bool, id *[zkidentity.IdentitySize]byte, payload interface{}) {
-
 	m := wireMsg{
 		id:      id,
 		payload: payload,

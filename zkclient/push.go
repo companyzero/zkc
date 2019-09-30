@@ -1275,7 +1275,6 @@ func (z *ZKC) handleGroupMessage(msg rpc.Message, p rpc.Push,
 		s = gm.Message[:x] + MAGENTABOLD +
 			gm.Message[x:x+len(z.id.Public.Nick)] + RESET +
 			gm.Message[x+len(z.id.Public.Nick):]
-
 	}
 
 	var n string

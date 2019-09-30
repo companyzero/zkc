@@ -142,7 +142,6 @@ func reinitRatchet(t *testing.T, r *Ratchet) *Ratchet {
 	}
 
 	return newR
-
 }
 
 func testScript(t *testing.T, script []scriptAction) {

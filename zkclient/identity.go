@@ -55,9 +55,7 @@ func (z *ZKC) ratchetExists(id [zkidentity.IdentitySize]byte) bool {
 	return err == nil
 }
 
-func (z *ZKC) removeRatchet(id [zkidentity.IdentitySize]byte,
-	half bool) error {
-
+func (z *ZKC) removeRatchet(id [zkidentity.IdentitySize]byte, half bool) error {
 	var rf string
 	if half {
 		rf = halfRatchetFilename
