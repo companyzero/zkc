@@ -60,7 +60,6 @@ func New(filename string, create bool, depth int) (*INIDB, error) {
 			return nil, fmt.Errorf("could not create directory: %v",
 				err)
 		}
-
 	} else if err != nil {
 		return nil, fmt.Errorf("could not create lock %v: %v",
 			path.Dir(filename), err)

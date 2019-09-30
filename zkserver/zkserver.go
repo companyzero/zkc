@@ -581,7 +581,6 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 
 		default:
 			return fmt.Errorf("invalid message: %v", message)
-
 		}
 
 		tagBitmap[message.Tag] = false
