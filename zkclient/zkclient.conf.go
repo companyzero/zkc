@@ -37,12 +37,12 @@ debug = no
 # requires debug = yes
 profiler = 127.0.0.1:6061
 
-# Valid ui colors: black, red, green, yellow, blue, magenta, cyan and white
+# Valid ui colors: na, black, red, green, yellow, blue, magenta, cyan and white
 # Valid atttributes are: none, underline and bold
 # format is: attribute:foreground:background
 [ui]
-nickcolor = bold:white:black
-gcothercolor = bold:green:black
-pmothercolor = bold:cyan:black
+nickcolor = bold:na:na
+gcothercolor = bold:green:na
+pmothercolor = bold:cyan:na
 `
 )
