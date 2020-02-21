@@ -51,6 +51,8 @@ type Settings struct {
 func textToColor(in string) (int, error) {
 	var c int
 	switch strings.ToLower(in) {
+	case "na":
+		c = ttk.AttrNA
 	case "black":
 		c = ttk.ColorBlack
 	case "red":
