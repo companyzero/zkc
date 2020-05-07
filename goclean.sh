@@ -6,13 +6,12 @@
 # 4. unconvert     (https://github.com/mdempsky/unconvert)
 # 5. ineffassign   (https://github.com/gordonklaus/ineffassign)
 # 6. unused        (https://github.com/dominikh/go-tools)
-# 7. race detector (http://blog.golang.org/race-detector)
-# 8. test coverage (http://blog.golang.org/cover)
+# 7. test coverage (http://blog.golang.org/cover)
 #
 set -ex
 
 # run tests
-env GORACE="halt_on_error=1" go test -race ./...
+env GORACE="halt_on_error=1" go test -v ./...
 
 # golangci-lint (github.com/golangci/golangci-lint) is used to run each each
 # static checker.

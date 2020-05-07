@@ -1,8 +1,8 @@
 zkc
 ===
 
-[![Build Status](https://travis-ci.org/companyzero/zkc.png?branch=master)](https://travis-ci.org/companyzero/zkc)
-[![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
+[![Build Status](https://github.com/companyzero/zkc/workflows/Build%20and%20Test/badge.svg)](https://github.com/companyzero/zkc/actions)
+[![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/companyzero/zkc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/companyzero/zkc)](https://goreportcard.com/report/github.com/companyzero/zkc)
 
@@ -179,40 +179,6 @@ $  zkservertoken
 Binary releases are provided for common operating systems and architectures:
 
 https://github.com/companyzero/zkc/releases
-
-### Build from source (all platforms)
-
-Building or updating from source requires the following build dependencies:
-
-- **Go 1.10 or 1.11**
-
-  Installation instructions can be found here: https://golang.org/doc/install.
-  It is recommended to add `$GOPATH/bin` to your `PATH` at this point.
-
-- **Vgo (Go 1.10 only)**
-
-  The `GO111MODULE` experiment is used to manage project dependencies and
-  provide reproducible builds.  The module experiment is provided by the Go 1.11
-  toolchain, but the Go 1.10 toolchain does not provide any module support.  To
-  perform module-aware builds with Go 1.10,
-  [vgo](https://godoc.org/golang.org/x/vgo) (a drop-in replacement for the go
-  command) must be used instead.
-
-- **Git**
-
-  Installation instructions can be found at https://git-scm.com or
-  https://gitforwindows.org.
-
-To build and install from a checked-out repo, run `go install ./...` in
-the repo's root directory.  Some notes:
-
-* Set the `GO111MODULE=on` environment variable if using Go 1.11 and building
-  from within `GOPATH`.
-
-* Replace `go` with `vgo` when using Go 1.10.
-
-* The executables will be installed to `$GOPATH/bin`.  `GOPATH`
-  defaults to `$HOME/go` (or `%USERPROFILE%\go` on Windows) if unset.
 
 ## Verifying Binaries
 
