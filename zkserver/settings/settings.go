@@ -101,7 +101,7 @@ func (s *Settings) Load(filename string) error {
 
 	// identify policy
 	err = iniBool(cfg, &s.AllowIdentify, "", "allowidentify")
-	if err != nil && err != errIniNotFound {
+	if err != nil && !errors.Is(err, errIniNotFound) {
 		return err
 	}
 
@@ -120,7 +120,7 @@ func (s *Settings) Load(filename string) error {
 
 	// directory policy
 	err = iniBool(cfg, &s.Directory, "", "directory")
-	if err != nil && err != errIniNotFound {
+	if err != nil && !errors.Is(err, errIniNotFound) {
 		return err
 	}
 
@@ -157,12 +157,12 @@ func (s *Settings) Load(filename string) error {
 	s.LogFile = strings.Replace(s.LogFile, "~", usr.HomeDir, 1)
 
 	err = iniBool(cfg, &s.Debug, "log", "debug")
-	if err != nil && err != errIniNotFound {
+	if err != nil && !errors.Is(err, errIniNotFound) {
 		return err
 	}
 
 	err = iniBool(cfg, &s.Trace, "log", "trace")
-	if err != nil && err != errIniNotFound {
+	if err != nil && !errors.Is(err, errIniNotFound) {
 		return err
 	}
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"path"
 	"strconv"
@@ -72,7 +73,7 @@ func (z *ZKS) handleRendezvousPull(writer chan *RPCWrapper,
 	// open db
 	rz, err := inidb.New(path.Join(z.settings.Root, rendezvousPath),
 		true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return fmt.Errorf("could not open rendezvous db: %v", err)
 	}
 
@@ -142,7 +143,7 @@ func (z *ZKS) handleRendezvous(writer chan *RPCWrapper,
 	// open db
 	rz, err := inidb.New(path.Join(z.settings.Root, rendezvousPath),
 		true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return fmt.Errorf("could not open rendezvous db: %v",
 			err)
 	}

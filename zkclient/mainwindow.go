@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -313,8 +314,7 @@ func (mw *mainWindow) readHistory() error {
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil {
-			if err == io.EOF {
-
+			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			return err
@@ -459,7 +459,7 @@ func (mw *mainWindow) action(cmd string) error {
 		}
 
 		c, win, err := mw.zkc.addressBookConversation(args[1])
-		if err == errPendingKX {
+		if errors.Is(err, errPendingKX) {
 			mw.zkc.PrintfT(-1, "Attempting key exchange "+
 				"with %v", args[1])
 			mw.zkc.PrintfT(-1, "This file will not be "+
@@ -552,7 +552,7 @@ func (mw *mainWindow) action(cmd string) error {
 
 		if c == nil {
 			c, win, err = mw.zkc.addressBookConversation(args[1])
-			if err == errPendingKX {
+			if errors.Is(err, errPendingKX) {
 				mw.zkc.PrintfT(-1, "Attempting key exchange "+
 					"with %v", args[1])
 				mw.zkc.PrintfT(-1, "This message will not be "+
@@ -727,7 +727,7 @@ type savedConversation struct {
 func saveConversations(z *ZKC) error {
 	os.Remove(path.Join(z.settings.Root, conversationsPath))
 	cdb, err := inidb.New(path.Join(z.settings.Root, conversationsPath), true, 10)
-	if err != inidb.ErrCreated {
+	if !errors.Is(err, inidb.ErrCreated) {
 		if err != nil {
 			return err
 		} else {

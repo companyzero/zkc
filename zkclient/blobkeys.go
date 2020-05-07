@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"path"
 	"strconv"
@@ -54,7 +55,7 @@ func (z *ZKC) saveKey(key *[32]byte) error {
 	// open db
 	kdb, err := inidb.New(path.Join(z.settings.Root, blobKeysPath),
 		true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return err
 	}
 

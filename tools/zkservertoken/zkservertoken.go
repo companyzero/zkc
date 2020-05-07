@@ -1,10 +1,11 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -57,7 +58,7 @@ func _main() error {
 
 	// open db
 	pending, err := inidb.New(path.Join(root, pendingPath), true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return fmt.Errorf("could not open inidb: %v", err)
 	}
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -208,25 +208,25 @@ func ObtainSettings() (*Settings, error) {
 
 	// TLS
 	err = iniBool(cfg, &s.TLSVerbose, "", "tlsverbose")
-	if err != nil && err != ErrIniNotFound {
+	if err != nil && !errors.Is(err, ErrIniNotFound) {
 		return nil, err
 	}
 
 	// Beep
 	err = iniBool(cfg, &s.Beep, "", "beep")
-	if err != nil && err != ErrIniNotFound {
+	if err != nil && !errors.Is(err, ErrIniNotFound) {
 		return nil, err
 	}
 
 	// Separator
 	err = iniBool(cfg, &s.Separator, "", "separator")
-	if err != nil && err != ErrIniNotFound {
+	if err != nil && !errors.Is(err, ErrIniNotFound) {
 		return nil, err
 	}
 
 	// logging and debug
 	err = iniBool(cfg, &s.SaveHistory, "log", "savehistory")
-	if err != nil && err != ErrIniNotFound {
+	if err != nil && !errors.Is(err, ErrIniNotFound) {
 		return nil, err
 	}
 
@@ -240,7 +240,7 @@ func ObtainSettings() (*Settings, error) {
 	}
 
 	err = iniBool(cfg, &s.Debug, "log", "debug")
-	if err != nil && err != ErrIniNotFound {
+	if err != nil && !errors.Is(err, ErrIniNotFound) {
 		return nil, err
 	}
 

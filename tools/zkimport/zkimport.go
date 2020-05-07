@@ -1,4 +1,4 @@
-// Copyright (c) 2016,2017 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -176,7 +177,7 @@ func importServerRecord(root string, force bool, cr tools.ServerRecord) error {
 	}
 	// save server as our very own
 	server, err := inidb.New(serverFile, true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return fmt.Errorf("could not open server file: %v", err)
 	}
 	err = server.Set("", "server", string(cr.IPandPort))
