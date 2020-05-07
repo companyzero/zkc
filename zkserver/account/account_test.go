@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package account
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -51,9 +52,14 @@ func TestUpgradeDiskMessage(t *testing.T) {
 	var dm diskMessage
 	br := bytes.NewReader(b.Bytes())
 	_, err = xdr.Unmarshal(br, &dm)
-	if uerr, ok := err.(*xdr.UnmarshalError); err != nil && (!ok ||
-		uerr.ErrorCode != xdr.ErrIO || uerr.Err != io.EOF) {
-		t.Fatal(err)
+	if err != nil {
+		var uerr *xdr.UnmarshalError
+		if !errors.As(err, &uerr) ||
+			uerr.ErrorCode != xdr.ErrIO ||
+			!errors.Is(uerr.Err, io.EOF) {
+
+			t.Fatal(err)
+		}
 	}
 	if dmo.From != dm.From || dmo.Received != dm.Received ||
 		!bytes.Equal(dmo.Payload, dm.Payload) || dm.Cleartext {
@@ -68,9 +74,13 @@ func TestUpgradeDiskMessage(t *testing.T) {
 	}
 	br = bytes.NewReader(b.Bytes())
 	_, err = xdr.Unmarshal(br, &dm)
-	if uerr, ok := err.(*xdr.UnmarshalError); err != nil && (!ok ||
-		uerr.ErrorCode != xdr.ErrIO || uerr.Err != io.EOF) {
-		t.Log("Got the correct error")
+	if err != nil {
+		var uerr *xdr.UnmarshalError
+		if !errors.As(err, &uerr) ||
+			uerr.ErrorCode != xdr.ErrIO ||
+			!errors.Is(uerr.Err, io.EOF) {
+			t.Log("Got the correct error")
+		}
 	} else {
 		t.Fatal(err)
 	}

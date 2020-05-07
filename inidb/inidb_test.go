@@ -1,10 +1,11 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package inidb
 
 import (
+	"errors"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -29,7 +30,7 @@ func TestCreateNodir(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = New(path.Join(dir, "doesntexist", "db.ini"), true, 10)
-	if err != nil && err != ErrCreated {
+	if err != nil && !errors.Is(err, ErrCreated) {
 		t.Fatal(err)
 	}
 }
@@ -40,7 +41,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = New(path.Join(dir, "db.ini"), true, 10)
-	if err != nil && err != ErrCreated {
+	if err != nil && !errors.Is(err, ErrCreated) {
 		t.Fatal(err)
 	}
 }
@@ -80,7 +81,7 @@ func TestGet(t *testing.T) {
 
 	// not found
 	_, err = i.Get("other", "oink1")
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("record should not have been found")
 	}
 
@@ -92,7 +93,7 @@ func TestGet(t *testing.T) {
 
 	// should be found
 	value, err = i.Get("other", "oink1")
-	if err == ErrNotFound {
+	if errors.Is(err, ErrNotFound) {
 		t.Fatalf("record should have been found")
 	}
 	if value != "bleh" {
@@ -123,7 +124,7 @@ func TestGetNewFile(t *testing.T) {
 
 	// search appended key
 	value, err := ii.Get("other", "oink1")
-	if err == ErrNotFound {
+	if errors.Is(err, ErrNotFound) {
 		t.Fatalf("record should have been found")
 	}
 	if value != "bleh" {
@@ -132,7 +133,7 @@ func TestGetNewFile(t *testing.T) {
 
 	// search appended table
 	value, err = ii.Get("newtable", "oink1")
-	if err == ErrNotFound {
+	if errors.Is(err, ErrNotFound) {
 		t.Fatalf("record should have been found")
 	}
 	if value != "bleh" {
@@ -172,7 +173,7 @@ func TestDel(t *testing.T) {
 		t.Fatal(err)
 	}
 	idb, err := New(path.Join(dir, "db.ini"), true, 10)
-	if err != nil && err != ErrCreated {
+	if err != nil && !errors.Is(err, ErrCreated) {
 		t.Fatal(err)
 	}
 
@@ -197,13 +198,13 @@ func TestDel(t *testing.T) {
 
 	// test negative Get
 	_, err = idb.Get("floing", "bar")
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal(err)
 	}
 
 	// test negative Del
 	err = idb.Del("doesntexist", "bar")
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal(err)
 	}
 }
@@ -214,7 +215,7 @@ func TestRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	idb, err := New(path.Join(dir, "db.ini"), true, 10)
-	if err != nil && err != ErrCreated {
+	if err != nil && !errors.Is(err, ErrCreated) {
 		t.Fatal(err)
 	}
 

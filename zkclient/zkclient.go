@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -486,7 +486,7 @@ func (z *ZKC) query(nick string) {
 		_, win, err = z.addressBookConversation(nick)
 		if err != nil {
 			z.PrintfT(-1, "%v", err)
-			if err == errPendingKX {
+			if errors.Is(err, errPendingKX) {
 				z.PrintfT(-1, "If key exchange succeeds you "+
 					"must reissue the query command")
 			}
@@ -693,7 +693,7 @@ func (z *ZKC) saveServerRecord(pid *zkidentity.PublicIdentity,
 	// save server as our very own
 	server, err := inidb.New(path.Join(z.settings.Root,
 		tools.ZKCServerFilename), true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return fmt.Errorf("could not open server file: %v", err)
 	}
 	err = server.Set("", "server", z.serverAddress)
@@ -989,7 +989,7 @@ func (z *ZKC) goOnline() (*rpc.Welcome, error) {
 func (z *ZKC) goOnlineAndPrint() error {
 	welcome, err := z.goOnline()
 	switch {
-	case err == errCert:
+	case errors.Is(err, errCert):
 		z.PrintfT(0, REDBOLD+"Server connection disallowed: "+
 			"certificate changed"+RESET)
 		z.PrintfT(0, REDBOLD+"New fingerprint: %v"+RESET,
@@ -1027,7 +1027,7 @@ func (z *ZKC) goOnlineRetry() {
 		z.PrintfT(0, "Trying to reconnect to: %v",
 			z.serverAddress)
 		err := z.goOnlineAndPrint()
-		if err == errCert {
+		if errors.Is(err, errCert) {
 			// give up
 			return
 		}
@@ -1290,7 +1290,7 @@ func (z *ZKC) handleRPC() {
 				z.Dbg(idZKC, "connection closed")
 				return
 			}
-			if err == session.ErrDecrypt {
+			if errors.Is(err, session.ErrDecrypt) {
 				exitError = fmt.Errorf("invalid header: %v", err)
 			} else {
 				exitError = fmt.Errorf("kx.Read: invalid header")
@@ -1401,10 +1401,11 @@ func (z *ZKC) handleRPC() {
 				}
 
 				var ms string
-				switch err.(type) {
-				case *ratchetError:
+				var rErr *ratchetError
+				switch {
+				case errors.As(err, &rErr):
 					ms = fmt.Sprintf("push ratchet error "+
-						"from %v: %v", from, err)
+						"from %v: %v", from, rErr)
 				default:
 					ms = fmt.Sprintf("could not handle "+
 						"push command from %v: %v",

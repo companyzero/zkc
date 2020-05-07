@@ -1,10 +1,11 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package tagstack
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -20,7 +21,7 @@ func TestUnderflow(t *testing.T) {
 	// note <= to induce failure
 	for i := 0; i <= size; i++ {
 		x, err := ts.Pop()
-		if err == ErrUnderflow && i == size {
+		if i == size && errors.Is(err, ErrUnderflow) {
 			return
 		}
 		t.Logf("x %v", x)
@@ -31,7 +32,7 @@ func TestUnderflow(t *testing.T) {
 func TestOverflow(t *testing.T) {
 	ts := New(size)
 	err := ts.Push(uint32(size))
-	if err != ErrOverflow {
+	if !errors.Is(err, ErrOverflow) {
 		t.Fatalf("expected overflow")
 	}
 }

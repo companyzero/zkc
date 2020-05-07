@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -358,7 +359,8 @@ func (z *ZKS) handleSession(kx *session.KX) error {
 		// but it fixes the issue where phantom server connections
 		// remain online preventing the client from connecting to the
 		// server altogether.
-		if _, ok := err.(account.ErrAlreadyOnline); ok {
+		var aErr account.ErrAlreadyOnline
+		if errors.As(err, &aErr) {
 			z.Dbg(idS, "handleSession forced offline: %v", rids)
 			z.Lock()
 			if oldSc, ok := z.sessions[rids]; ok {

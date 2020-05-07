@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -63,7 +64,7 @@ func (z *ZKC) addressBookAdd(id zkidentity.PublicIdentity) error {
 	}
 
 	nick, err := z.ab.Add(id)
-	if err == addressbook.ErrDuplicateNick {
+	if errors.Is(err, addressbook.ErrDuplicateNick) {
 		return fmt.Errorf("warning duplicate nick added: "+
 			"%v -> %v", id.Nick, nick)
 	}

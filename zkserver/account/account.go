@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -137,7 +138,7 @@ func (a *Account) Create(pid zkidentity.PublicIdentity, force bool) error {
 	// open user db
 	user, err := inidb.New(a.accountFile(pid.Identity,
 		UserIdentityFilename), true, 10)
-	if err != nil && err != inidb.ErrCreated {
+	if err != nil && !errors.Is(err, inidb.ErrCreated) {
 		return fmt.Errorf("could not open userdb: %v", err)
 	}
 
@@ -469,16 +470,19 @@ func (a *Account) Online(who [zkidentity.IdentitySize]byte, ntfn chan *Notificat
 				// upgrade where we added Cleartext to the
 				// diskMessage. A short read is therefore
 				// an error we must ignore.
-				if uerr, ok := err.(*xdr.UnmarshalError); err != nil &&
-					(!ok || uerr.ErrorCode != xdr.ErrIO ||
-						uerr.Err != io.EOF) {
+				if err != nil {
+					var uerr *xdr.UnmarshalError
+					if !errors.As(err, &uerr) ||
+						uerr.ErrorCode != xdr.ErrIO ||
+						!errors.Is(uerr.Err, io.EOF) {
 
-					f.Close()
-					dn.send(&Notification{
-						Error: fmt.Errorf("%v: unmarshal %v",
-							filename, err),
-					})
-					continue
+						f.Close()
+						dn.send(&Notification{
+							Error: fmt.Errorf("%v: unmarshal %v",
+								filename, err),
+						})
+						continue
+					}
 				}
 				f.Close()
 

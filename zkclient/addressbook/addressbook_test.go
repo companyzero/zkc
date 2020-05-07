@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Company 0, LLC.
+// Copyright (c) 2016-2020 Company 0, LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package addressbook
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/companyzero/zkc/zkidentity"
@@ -36,7 +37,7 @@ func TestDel(t *testing.T) {
 
 	// negative
 	err = ab.Del(alice.Public.Identity)
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unexpected error in Del: %v", err)
 	}
 }
@@ -61,7 +62,7 @@ func TestDuplicate(t *testing.T) {
 	// new alice
 	alice.Public.Identity[0] = 0x01
 	nick2, err := ab.Add(alice.Public)
-	if err != ErrDuplicateNick {
+	if !errors.Is(err, ErrDuplicateNick) {
 		t.Fatalf("nick not duplicate")
 	}
 
@@ -106,11 +107,11 @@ func TestFindNickAndIdentity(t *testing.T) {
 
 	// negative
 	_, err = ab.FindNick("moo")
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal(err)
 	}
 	_, err = ab.FindIdentity([zkidentity.IdentitySize]byte{0x11})
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal(err)
 	}
 }
