@@ -849,11 +849,8 @@ func (z *ZKS) listen() error {
 				z.Error(idApp, "Accept: %v", err)
 				continue
 			}
-
-			conn.(*net.TCPConn).SetKeepAlive(false)
-			conn = tls.Server(conn, &config)
-
-			go z.preSession(conn)
+			conn.(*net.TCPConn).SetKeepAlive(true)
+			go z.preSession(tls.Server(conn, &config))
 		}
 	}()
 
