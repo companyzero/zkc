@@ -78,7 +78,10 @@ func TestEncryptDecryptSmall(t *testing.T) {
 	a, b := pairedRatchet()
 
 	msg := []byte("test message")
-	encrypted := a.Encrypt(nil, msg)
+	encrypted, err := a.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err := b.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +127,10 @@ func TestEncryptDecryptLarge(t *testing.T) {
 	a, b := pairedRatchet()
 
 	msg := []byte(strings.Repeat("test message", 1024*1024))
-	encrypted := a.Encrypt(nil, msg)
+	encrypted, err := a.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err := b.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)

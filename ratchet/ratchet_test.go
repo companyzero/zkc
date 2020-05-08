@@ -97,7 +97,10 @@ func TestExchange(t *testing.T) {
 	a, b := pairedRatchet(t)
 
 	msg := []byte(strings.Repeat("test message", 1024*1024))
-	encrypted := a.Encrypt(nil, msg)
+	encrypted, err := a.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err := b.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)
@@ -163,8 +166,10 @@ func testScript(t *testing.T, script []scriptAction) {
 
 			var msg [20]byte
 			rand.Reader.Read(msg[:])
-			encrypted := sender.Encrypt(nil, msg[:])
-
+			encrypted, err := sender.Encrypt(nil, msg[:])
+			if err != nil {
+				t.Fatalf("Encrypt: %v", err)
+			}
 			switch action.result {
 			case deliver:
 				result, err := receiver.Decrypt(encrypted)
@@ -339,7 +344,10 @@ func TestDiskState(t *testing.T) {
 	a, b := pairedRatchet(t)
 
 	msg := []byte("test message")
-	encrypted := a.Encrypt(nil, msg)
+	encrypted, err := a.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err := b.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)
@@ -348,7 +356,10 @@ func TestDiskState(t *testing.T) {
 		t.Fatalf("result doesn't match: %x vs %x", msg, result)
 	}
 
-	encrypted = b.Encrypt(nil, msg)
+	encrypted, err = b.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err = a.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)
@@ -414,7 +425,10 @@ func TestDiskState(t *testing.T) {
 	}
 
 	// send message to alice
-	encrypted = newBob.Encrypt(nil, msg)
+	encrypted, err = newBob.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err = newAlice.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)
@@ -423,7 +437,10 @@ func TestDiskState(t *testing.T) {
 		t.Fatalf("result doesn't match: %x vs %x", msg, result)
 	}
 
-	encrypted = newAlice.Encrypt(nil, msg)
+	encrypted, err = newAlice.Encrypt(nil, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err = newBob.Decrypt(encrypted)
 	if err != nil {
 		t.Fatal(err)

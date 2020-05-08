@@ -238,17 +238,20 @@ func (r *Ratchet) CompleteKeyExchange(kx *KeyExchange, alice bool) error {
 }
 
 // Encrypt acts like append() but appends an encrypted version of msg to out.
-func (r *Ratchet) Encrypt(out, msg []byte) []byte {
+func (r *Ratchet) Encrypt(out, msg []byte) ([]byte, error) {
 	if r.ratchet {
 		r.randBytes(r.sendRatchetPrivate[:])
 		copy(r.sendHeaderKey[:], r.nextSendHeaderKey[:])
 
-		var sharedKey, keyMaterial [32]byte
-		curve25519.ScalarMult(&sharedKey, &r.sendRatchetPrivate, &r.recvRatchetPublic)
+		var keyMaterial [32]byte
+		sharedKey, err := curve25519.X25519(r.sendRatchetPrivate[:], r.recvRatchetPublic[:])
+		if err != nil {
+			return nil, err
+		}
 		sha := sha256.New()
 		sha.Write(rootKeyUpdateLabel)
 		sha.Write(r.rootKey[:])
-		sha.Write(sharedKey[:])
+		sha.Write(sharedKey)
 		sha.Sum(keyMaterial[:0])
 		h := hmac.New(sha256.New, keyMaterial[:])
 		deriveKey(&r.rootKey, rootKeyLabel, h)
@@ -277,7 +280,7 @@ func (r *Ratchet) Encrypt(out, msg []byte) []byte {
 	out = append(out, headerNonce[:]...)
 	out = secretbox.Seal(out, header[:], &headerNonce, &r.sendHeaderKey)
 	r.sendCount++
-	return secretbox.Seal(out, msg, &messageNonce, &messageKey)
+	return secretbox.Seal(out, msg, &messageNonce, &messageKey), nil
 }
 
 // trySavedKeys tries to decrypt ciphertext using keys saved for missing messages.
@@ -458,15 +461,17 @@ func (r *Ratchet) Decrypt(ciphertext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	var dhPublic, sharedKey, rootKey, chainKey, keyMaterial [32]byte
+	var dhPublic, rootKey, chainKey, keyMaterial [32]byte
 	copy(dhPublic[:], header[8:])
 
-	curve25519.ScalarMult(&sharedKey, &r.sendRatchetPrivate, &dhPublic)
-
+	sharedKey, err := curve25519.X25519(r.sendRatchetPrivate[:], dhPublic[:])
+	if err != nil {
+		return nil, err
+	}
 	sha := sha256.New()
 	sha.Write(rootKeyUpdateLabel)
 	sha.Write(r.rootKey[:])
-	sha.Write(sharedKey[:])
+	sha.Write(sharedKey)
 
 	var rootKeyHMAC hash.Hash
 

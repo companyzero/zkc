@@ -415,9 +415,7 @@ func (z *ZKC) crpc(r *ratchet.Ratchet, payload interface{}) ([]byte, error) {
 	bb.Write(p)
 
 	// encrypt CRPC
-	blob := r.Encrypt(nil, bb.Bytes())
-
-	return blob, nil
+	return r.Encrypt(nil, bb.Bytes())
 }
 
 func (z *ZKC) pm(id [zkidentity.IdentitySize]byte, message string, mode rpc.MessageMode) error {
