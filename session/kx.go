@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/companyzero/sntrup4591761"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"golang.org/x/crypto/nacl/secretbox"
 )
 

@@ -17,7 +17,7 @@ import (
 	"github.com/companyzero/zkc/ratchet"
 	"github.com/companyzero/zkc/ratchet/disk"
 	"github.com/companyzero/zkc/zkidentity"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 const (

@@ -16,7 +16,7 @@ import (
 
 	"github.com/companyzero/zkc/zkidentity"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 func newAccount(t *testing.T) (*Account, error) {
