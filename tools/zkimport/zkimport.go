@@ -22,7 +22,7 @@ import (
 	"github.com/companyzero/zkc/tools"
 	"github.com/companyzero/zkc/zkserver/account"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/vaughan0/go-ini"
 )
 

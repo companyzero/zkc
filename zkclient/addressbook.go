@@ -16,7 +16,7 @@ import (
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkclient/addressbook"
 	"github.com/companyzero/zkc/zkidentity"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 // addressBookDel permanently removes nick from the address book.

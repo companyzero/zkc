@@ -11,7 +11,7 @@ import (
 	"github.com/companyzero/ttk"
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 

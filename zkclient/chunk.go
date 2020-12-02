@@ -12,7 +12,7 @@ import (
 	"path"
 
 	"github.com/companyzero/zkc/rpc"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/marcopeereboom/goutil"
 )
 

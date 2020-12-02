@@ -7,7 +7,6 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
-	"fmt"
 	"strings"
 
 	"github.com/companyzero/ttk"
@@ -15,7 +14,7 @@ import (
 	"github.com/companyzero/zkc/ratchet"
 	"github.com/companyzero/zkc/rpc"
 	"github.com/companyzero/zkc/zkidentity"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"github.com/nsf/termbox-go"
 )
 
@@ -103,7 +102,7 @@ func (aw *acceptCFPWindow) Init(w *ttk.Window) {
 	//y++
 
 	y++
-	s := fmt.Sprintf("Are you sure you want to continue connecting (yes/no)?")
+	s := "Are you sure you want to continue connecting (yes/no)?"
 	w.AddLabel(ax, ay+y, s)
 	aw.questionInput = w.AddEdit(ax+len(s)+1, ay+y, -2, &aw.question)
 }

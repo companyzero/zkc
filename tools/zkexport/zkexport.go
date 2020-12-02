@@ -23,7 +23,7 @@ import (
 	"github.com/companyzero/zkc/zkserver/settings"
 	"github.com/companyzero/zkc/zkutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 )
 
 // fetchServerFullIdentity() fetches a server's signed identity data.

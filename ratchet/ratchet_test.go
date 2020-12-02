@@ -17,7 +17,7 @@ import (
 	"github.com/companyzero/sntrup4591761"
 	"github.com/companyzero/zkc/blobshare"
 	"github.com/companyzero/zkc/ratchet/disk"
-	"github.com/davecgh/go-xdr/xdr2"
+	xdr "github.com/davecgh/go-xdr/xdr2"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 )

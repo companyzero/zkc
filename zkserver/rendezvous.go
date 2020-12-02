@@ -87,20 +87,20 @@ func (z *ZKS) handleRendezvousPull(writer chan *RPCWrapper,
 	// get token
 	v, err := rz.Get("", r.Token)
 	if err != nil {
-		payload.Error = fmt.Sprintf("invalid PIN")
+		payload.Error = "invalid PIN"
 		goto bad
 	}
 
 	// decode value
 	rzXDR, err = base64.StdEncoding.DecodeString(v)
 	if err != nil {
-		payload.Error = fmt.Sprintf("internal error base64decode")
+		payload.Error = "internal error base64decode"
 		goto bad
 	}
 	br = bytes.NewReader(rzXDR)
 	_, err = z.unmarshal(br, &rzRecord)
 	if err != nil {
-		payload.Error = fmt.Sprintf("internal error unmarshal")
+		payload.Error = "internal error unmarshal"
 		goto bad
 	}
 
