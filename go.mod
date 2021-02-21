@@ -12,6 +12,6 @@ require (
 	github.com/nsf/termbox-go v0.0.0-20200418040025-38ba6e5628f1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
-	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 )
