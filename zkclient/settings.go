@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/companyzero/ttk"
@@ -46,6 +47,9 @@ type Settings struct {
 	NickColor string
 	GcColor   string
 	PmColor   string
+
+	// auto-open groups
+	OpenGroups []string
 }
 
 func textToColor(in string) (int, error) {
@@ -286,6 +290,24 @@ func ObtainSettings() (*Settings, error) {
 		}
 		s.PmColor = color
 	}
+
+	groups := cfg.Section("groups")
+	openGroups := make([]string, len(groups))
+	for window, group := range groups {
+		n, err := strconv.Atoi(window)
+		if err != nil {
+			return nil, fmt.Errorf("groups: %q: %v", group, err)
+		}
+		if n <= 0 || n > len(groups)+1 {
+			return nil, fmt.Errorf("groups: %q: window %d unusable", group, n)
+		}
+		g := &openGroups[n-1]
+		if *g != "" {
+			return nil, fmt.Errorf("groups: %q: window %d in-use by %q", group, n, *g)
+		}
+		*g = group
+	}
+	s.OpenGroups = openGroups
 
 	return &s, nil
 }

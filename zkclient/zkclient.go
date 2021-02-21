@@ -975,14 +975,7 @@ func (z *ZKC) goOnline() (*rpc.Welcome, error) {
 		return nil, err
 	}
 
-	welcome, err := z.welcomePhase(kx)
-	if err != nil {
-		return nil, err
-	}
-
-	go z.handleRPC()
-
-	return welcome, nil
+	return z.welcomePhase(kx)
 }
 
 //
@@ -1001,8 +994,20 @@ func (z *ZKC) goOnlineAndPrint() error {
 	default:
 		err = z.welcomeUser(welcome)
 	}
+	if err != nil {
+		return err
+	}
 
-	return err
+	for _, group := range z.settings.OpenGroups {
+		_, _, err = z.groupConversation(group)
+		if err != nil {
+			z.PrintfT(0, "Failed to open group window %q", group)
+		}
+	}
+
+	go z.handleRPC()
+
+	return nil
 }
 
 func (z *ZKC) goOnlineRetry() {
