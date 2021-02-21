@@ -994,6 +994,9 @@ func (z *ZKC) goOnlineAndPrint() error {
 	default:
 		err = z.welcomeUser(welcome)
 	}
+	if err != nil {
+		return err
+	}
 
 	for _, group := range z.settings.OpenGroups {
 		_, _, err = z.groupConversation(group)
@@ -1004,7 +1007,7 @@ func (z *ZKC) goOnlineAndPrint() error {
 
 	go z.handleRPC()
 
-	return err
+	return nil
 }
 
 func (z *ZKC) goOnlineRetry() {
