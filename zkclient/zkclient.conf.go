@@ -44,5 +44,12 @@ profiler = 127.0.0.1:6061
 nickcolor = bold:na:na
 gcothercolor = bold:green:na
 pmothercolor = bold:cyan:na
+
+# Joined groups can be auto-opened in a specified order.
+# Each key describes the window index, and the value must be the group name.
+# Indexes begin at 1 due to index 0 being reserved for the console window.
+[groups]
+# 1 = firstgroup
+# 2 = secondgroup
 `
 )
